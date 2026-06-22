@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">rehabnation-blood-network</string>
+    <string name="title_activity_main">rehabnation-blood-network</string>
+    <string name="package_name">in.rhfi.bloodnetwork</string>
+    <string name="custom_url_scheme">in.rhfi.bloodnetwork</string>
+</resources>

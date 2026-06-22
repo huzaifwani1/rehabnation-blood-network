@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { BLOOD_TYPES } from '../data/mockData';
+import { BLOOD_TYPES, ALL_DISTRICTS } from '../data/mockData';
 
 const STEPS_DONOR = ['Account', 'Blood Info', 'Location', 'Consent'];
 
@@ -17,7 +17,8 @@ export default function RegisterPage() {
     full_name: '', email: '', phone: '', password: '',
     gender: 'male',
     blood_type: '', dob: '', weight: '', hemoglobin_level: '',
-    district: '', address: '', city: '', region: '', max_travel: '25', preferred_contact: 'phone',
+    district: '', address: '', city: '', region: '',
+    last_donation_date: '', donation_count: '0',
     consent: false,
   });
 
@@ -29,8 +30,7 @@ export default function RegisterPage() {
     const result = registerUser({
       email: form.email,
       password: form.password,
-      role: 'donor',
-      name: form.full_name,
+      full_name: form.full_name,
       phone: form.phone,
       gender: form.gender,
       blood_type: form.blood_type,
@@ -41,14 +41,14 @@ export default function RegisterPage() {
       address: form.address,
       city: form.city,
       region: form.region,
-      max_travel: form.max_travel,
-      preferred_contact: form.preferred_contact
+      last_donation_date: form.last_donation_date,
+      donation_count: form.donation_count,
     });
 
     if (result.success) {
       setSubmitted(true);
       setTimeout(() => {
-        navigate('/donor');
+        navigate('/dashboard');
       }, 2000);
     } else {
       setError(result.error);
@@ -164,7 +164,7 @@ export default function RegisterPage() {
                 </select>
               </div>
               <div className="flex gap-3 mt-4">
-                <button className="btn btn-secondary" onClick={() => navigate('/donor-login')}>Back</button>
+                <button className="btn btn-secondary" onClick={() => navigate('/login')}>Back</button>
                 <button id="step0-next" className="btn btn-primary flex-1" onClick={handleStep0Continue}>Continue</button>
               </div>
             </div>
@@ -214,35 +214,32 @@ export default function RegisterPage() {
           {/* Step 2: Location */}
           {step === 2 && (
             <div className="auth-form">
-              <h3 style={{ marginBottom: 'var(--space-4)' }}>Location & Availability</h3>
-              {[
-                { label: 'District <span>*</span>', key: 'district', placeholder: 'e.g. Lagos Mainland' },
-                { label: 'Current City/District <span>*</span>', key: 'current_city_district', placeholder: 'e.g. Yaba' },
-                { label: 'City', key: 'city', placeholder: 'e.g. Lagos' },
-                { label: 'Region / State', key: 'region', placeholder: 'e.g. Lagos State' },
-              ].map(f => (
-                <div key={f.key} className="form-group">
-                  <label className="form-label" dangerouslySetInnerHTML={{ __html: f.label }} />
-                  <input id={`reg-${f.key}`} type="text" className="form-input" placeholder={f.placeholder} value={form[f.key]} onChange={e => update(f.key, e.target.value)} />
-                </div>
-              ))}
+              <h3 style={{ marginBottom: 'var(--space-4)' }}>Location in Jammu & Kashmir</h3>
+              <div className="form-group">
+                <label className="form-label">District <span>*</span></label>
+                <select
+                  id="reg-district"
+                  className="form-select"
+                  value={form.district}
+                  onChange={e => update('district', e.target.value)}
+                >
+                  <option value="">Select your district</option>
+                  {ALL_DISTRICTS.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <span className="form-hint">Select the J&K district you currently reside in</span>
+              </div>
               <div className="form-group">
                 <label className="form-label">Full Address <span>*</span></label>
-                <textarea id="reg-address" className="form-textarea" placeholder="Enter your full home address" value={form.address} onChange={e => update('address', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Max Travel Distance</label>
-                <select id="reg-max-travel" className="form-select" value={form.max_travel} onChange={e => update('max_travel', e.target.value)}>
-                  {['5', '10', '25', '50', '100'].map(v => <option key={v} value={v}>{v} km</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Preferred Contact Method</label>
-                <select id="reg-contact" className="form-select" value={form.preferred_contact} onChange={e => update('preferred_contact', e.target.value)}>
-                  <option value="phone">Phone Call</option>
-                  <option value="email">Email</option>
-                  <option value="whatsapp">WhatsApp</option>
-                </select>
+                <textarea
+                  id="reg-address"
+                  className="form-textarea"
+                  placeholder="Enter your full home address (neighbourhood, street, etc.)"
+                  value={form.address}
+                  onChange={e => update('address', e.target.value)}
+                  rows={3}
+                />
               </div>
               <div className="flex gap-3 mt-4">
                 <button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   MOCK_DONORS,
-  MOCK_HOSPITALS,
   MOCK_REQUESTS,
   MOCK_MATCHES,
   MOCK_DONOR_NOTIFICATIONS,
@@ -11,16 +10,21 @@ import {
 
 const AuthContext = createContext(null);
 
-// Email validation helper
 const validateEmailFormat = (email) => {
+  if (!email) return true; // Email is optional now
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(String(email).toLowerCase());
 };
 
-// Initial setup of users in localStorage if not exists
+// Initial setup of users in localStorage if not exists or if legacy exists
 const initializeUsers = () => {
   const stored = localStorage.getItem('rehabnation_users');
-  if (stored) return JSON.parse(stored);
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    // Auto-detect and migrate legacy role schemas ('donor' or 'hospital')
+    const hasLegacy = parsed.some(u => u.role === 'donor' || u.role === 'hospital');
+    if (!hasLegacy) return parsed;
+  }
 
   const initialUsers = [];
 
@@ -32,48 +36,36 @@ const initializeUsers = () => {
     password: 'password123',
     name: 'RehabNation Admin',
     initials: 'RA',
+    status: 'approved',
   });
 
-  // Map MOCK_DONORS
+  // Map MOCK_DONORS to unified 'user' role
   MOCK_DONORS.forEach((donor, index) => {
     initialUsers.push({
       id: 'u_' + donor.id,
-      role: 'donor',
-      email: donor.email,
+      role: 'user',
+      email: donor.email || '',
       password: 'password123',
       name: donor.name,
-      donor_id: donor.id,
+      dob: donor.dob || '1995-05-15',
+      gender: donor.gender || (index % 2 === 0 ? 'male' : 'female'),
+      phone: donor.phone,
       blood_type: donor.blood_type,
       city: donor.city,
       region: donor.region,
-      is_available: donor.is_available,
-      donation_count: donor.donation_count,
-      last_donation_date: donor.last_donation_date,
-      phone: donor.phone,
-      is_flagged: donor.is_flagged || false,
-      weight_kg: donor.weight_kg || 65,
-      created_at: donor.created_at || '2024-03-15',
-      initials: donor.name.split(' ').map(n => n[0]).join(''),
       district: donor.district || (index % 2 === 0 ? 'Lagos Mainland' : 'Lagos Island'),
+      address: donor.address || 'No. 12 Health Way Road',
       current_city_district: donor.current_city_district || donor.city,
-      hemoglobin_level: donor.hemoglobin_level || (12.5 + (index * 0.3)).toFixed(1),
+      weight_kg: donor.weight_kg || 65,
+      hemoglobin_level: donor.hemoglobin_level || '13.5',
+      last_donation_date: donor.last_donation_date || '',
+      donation_count: donor.donation_count || 0,
+      is_available: donor.is_available,
+      is_flagged: donor.is_flagged || false,
       verification_status: donor.verification_status || (index % 3 === 0 ? 'camp_verified' : 'unverified'),
-    });
-  });
-
-  // Map MOCK_HOSPITALS as users
-  MOCK_HOSPITALS.forEach(hosp => {
-    initialUsers.push({
-      id: 'u_' + hosp.id,
-      role: 'hospital',
-      email: hosp.primary_contact_email,
-      password: 'password123',
-      name: hosp.primary_contact_name,
-      hospital_id: hosp.id,
-      hospital_name: hosp.name,
-      city: hosp.city,
-      region: hosp.region,
-      initials: hosp.primary_contact_name.split(' ').map(n => n[0]).join(''),
+      status: donor.status || 'approved',
+      created_at: donor.created_at || '2024-03-15',
+      initials: donor.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
     });
   });
 
@@ -81,7 +73,6 @@ const initializeUsers = () => {
   return initialUsers;
 };
 
-// Initial setup of other models in localStorage
 const getOrInitialize = (key, defaultData) => {
   const stored = localStorage.getItem(key);
   if (stored) return JSON.parse(stored);
@@ -90,21 +81,17 @@ const getOrInitialize = (key, defaultData) => {
 };
 
 export function AuthProvider({ children }) {
-  // Initialize dynamic databases
   const [users, setUsers] = useState(() => initializeUsers());
-  const [hospitals, setHospitals] = useState(() => getOrInitialize('rehabnation_hospitals', MOCK_HOSPITALS));
   const [requests, setRequests] = useState(() => getOrInitialize('rehabnation_requests', MOCK_REQUESTS));
   const [matches, setMatches] = useState(() => getOrInitialize('rehabnation_matches', MOCK_MATCHES));
   const [notifications, setNotifications] = useState(() => getOrInitialize('rehabnation_notifications', MOCK_DONOR_NOTIFICATIONS));
   const [auditLogs, setAuditLogs] = useState(() => getOrInitialize('rehabnation_audit_logs', MOCK_AUDIT_LOGS));
 
-  // Current session user state
   const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem('rehabnation_current_user');
     return storedUser ? JSON.parse(storedUser) : null;
   });
 
-  // Helper to add audit logs
   const addAuditLog = (actorName, actorRole, action, target) => {
     const newLog = {
       id: 'al' + Date.now(),
@@ -120,12 +107,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem('rehabnation_audit_logs', JSON.stringify(updated));
   };
 
-  // Login verification
   const login = (email, password, role) => {
     if (!email || !email.trim()) {
-      return { success: false, error: 'Invalid email' };
-    }
-    if (!validateEmailFormat(email)) {
       return { success: false, error: 'Invalid email' };
     }
     if (!password) {
@@ -148,58 +131,53 @@ export function AuthProvider({ children }) {
       return { success: false, error: 'Invalid password' };
     }
 
-    // Role specific safety check: Suspended Hospitals
-    if (role === 'hospital') {
-      const hospitalRecord = hospitals.find(h => h.id === matchedUser.hospital_id);
-      if (hospitalRecord && hospitalRecord.status === 'suspended') {
-        return { success: false, error: 'Account has been suspended' };
-      }
+    if (matchedUser.status === 'suspended') {
+      return { success: false, error: 'Account has been suspended' };
     }
 
     setUser(matchedUser);
     localStorage.setItem('rehabnation_current_user', JSON.stringify(matchedUser));
-    
-    // Add audit log
-    addAuditLog(matchedUser.name, matchedUser.role + '_staff', 'LOGIN', 'Successful login');
-    
+    addAuditLog(matchedUser.name, matchedUser.role, 'LOGIN', 'Successful login');
     return { success: true };
   };
 
-  // Donor registration
   const registerUser = (userData) => {
-    const { email, password, role, name, ...rest } = userData;
+    const { email, password, full_name, phone, ...rest } = userData;
 
-    if (!email || !email.trim() || !validateEmailFormat(email)) {
-      return { success: false, error: 'Invalid email' };
+    if (email && email.trim() && !validateEmailFormat(email)) {
+      return { success: false, error: 'Invalid email format' };
     }
 
     if (!password || password.length < 8) {
       return { success: false, error: 'Password must be at least 8 characters' };
     }
 
-    const exists = users.some(
-      u => u.email.toLowerCase() === email.trim().toLowerCase()
-    );
-
-    if (exists) {
-      return { success: false, error: 'Account already exists' };
+    if (email && email.trim()) {
+      const exists = users.some(
+        u => u.email.toLowerCase() === email.trim().toLowerCase()
+      );
+      if (exists) {
+        return { success: false, error: 'Account already exists' };
+      }
     }
 
-    const initials = name
-      ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    const initials = full_name
+      ? full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
       : 'U';
 
     const newUser = {
       id: 'u_' + Date.now(),
-      role,
-      email: email.trim().toLowerCase(),
+      role: 'user',
+      email: email ? email.trim().toLowerCase() : '',
       password,
-      name,
+      name: full_name,
+      phone,
       initials,
       is_available: true,
-      donation_count: 0,
+      donation_count: Number(userData.donation_count) || 0,
       is_flagged: false,
       verification_status: 'unverified',
+      status: 'approved',
       created_at: new Date().toISOString(),
       ...rest,
     };
@@ -208,143 +186,65 @@ export function AuthProvider({ children }) {
     setUsers(updatedUsers);
     localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
 
-    // Log in automatically after registration
     setUser(newUser);
     localStorage.setItem('rehabnation_current_user', JSON.stringify(newUser));
-
-    addAuditLog(newUser.name, 'donor', 'REGISTER', 'Self registered as donor');
-
+    addAuditLog(newUser.name, 'user', 'REGISTER', 'Registered as user');
     return { success: true };
   };
 
-  // Logout session
   const logout = () => {
     if (user) {
-      addAuditLog(user.name, user.role + '_staff', 'LOGOUT', 'Logged out');
+      addAuditLog(user.name, user.role, 'LOGOUT', 'Logged out');
     }
     setUser(null);
     localStorage.removeItem('rehabnation_current_user');
   };
 
-  // Create Hospital Account (Admin only)
-  const createHospitalAccount = (hospData) => {
-    const hospId = 'h_' + Date.now();
-    
-    // Check if user already exists
-    const emailExists = users.some(u => u.email.toLowerCase() === hospData.contact_email.trim().toLowerCase());
-    if (emailExists) {
-      return { success: false, error: 'Account with contact email already exists' };
-    }
-
-    // 1. Create hospital record
-    const newHospital = {
-      id: hospId,
-      name: hospData.name,
-      city: hospData.city,
-      region: hospData.region,
-      status: 'approved',
-      license_number: hospData.license_number,
-      primary_contact_name: hospData.contact_name,
-      primary_contact_phone: hospData.contact_phone,
-      primary_contact_email: hospData.contact_email.trim().toLowerCase(),
-      created_at: new Date().toISOString(),
-    };
-
-    const updatedHospitals = [...hospitals, newHospital];
-    setHospitals(updatedHospitals);
-    localStorage.setItem('rehabnation_hospitals', JSON.stringify(updatedHospitals));
-
-    // 2. Create user record
-    const newUser = {
-      id: 'u_' + hospId,
-      role: 'hospital',
-      email: hospData.contact_email.trim().toLowerCase(),
-      password: hospData.password || 'password123',
-      name: hospData.contact_name,
-      hospital_id: hospId,
-      hospital_name: hospData.name,
-      city: hospData.city,
-      region: hospData.region,
-      initials: hospData.contact_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
-    };
-
-    const updatedUsers = [...users, newUser];
-    setUsers(updatedUsers);
-    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
-
-    if (user) {
-      addAuditLog(user.name, 'admin', 'CREATE_HOSPITAL', `Created hospital: ${hospData.name}`);
-    }
-
-    return { success: true };
-  };
-
-  // Edit Hospital Account (Admin only)
-  const updateHospitalAccount = (hospId, hospData) => {
-    // 1. Update hospital database
-    const updatedHospitals = hospitals.map(h => {
-      if (h.id === hospId) {
-        return {
-          ...h,
-          name: hospData.name,
-          city: hospData.city,
-          region: hospData.region,
-          license_number: hospData.license_number,
-          primary_contact_name: hospData.contact_name,
-          primary_contact_phone: hospData.contact_phone,
-          primary_contact_email: hospData.contact_email.trim().toLowerCase(),
-        };
-      }
-      return h;
-    });
-    setHospitals(updatedHospitals);
-    localStorage.setItem('rehabnation_hospitals', JSON.stringify(updatedHospitals));
-
-    // 2. Update users database
+  const updateUserProfile = (userId, profileData) => {
     const updatedUsers = users.map(u => {
-      if (u.hospital_id === hospId) {
-        return {
-          ...u,
-          email: hospData.contact_email.trim().toLowerCase(),
-          name: hospData.contact_name,
-          hospital_name: hospData.name,
-          city: hospData.city,
-          region: hospData.region,
-          initials: hospData.contact_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
-          // Update password if provided
-          password: hospData.password || u.password,
-        };
+      if (u.id === userId) {
+        const updated = { ...u, ...profileData };
+        if (userId === user?.id) {
+          setUser(updated);
+          localStorage.setItem('rehabnation_current_user', JSON.stringify(updated));
+        }
+        return updated;
       }
       return u;
     });
     setUsers(updatedUsers);
     localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
-
-    if (user) {
-      addAuditLog(user.name, 'admin', 'UPDATE_HOSPITAL', `Updated hospital: ${hospData.name}`);
-    }
-
     return { success: true };
   };
 
-  // Suspend / Reinstate Hospital Account
-  const suspendHospitalAccount = (hospId, status) => {
-    const updatedHospitals = hospitals.map(h => {
-      if (h.id === hospId) {
-        return { ...h, status };
+  const suspendUserAccount = (userId, isSuspended) => {
+    const status = isSuspended ? 'suspended' : 'approved';
+    const updatedUsers = users.map(u => {
+      if (u.id === userId) {
+        return { ...u, status };
       }
-      return h;
+      return u;
     });
-    setHospitals(updatedHospitals);
-    localStorage.setItem('rehabnation_hospitals', JSON.stringify(updatedHospitals));
-
+    setUsers(updatedUsers);
+    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
     if (user) {
-      addAuditLog(user.name, 'admin', status === 'suspended' ? 'SUSPEND_HOSPITAL' : 'APPROVE_HOSPITAL', `Set hospital ${hospId} status to ${status}`);
+      addAuditLog(user.name, 'admin', isSuspended ? 'SUSPEND_USER' : 'UNSUSPEND_USER', `Suspended user ${userId} set to ${isSuspended}`);
     }
   };
 
-  // Verify Donor Verification Status
-  const verifyDonor = (donorUserId, status) => {
+  const deleteUserAccount = (userId) => {
+    const updatedUsers = users.filter(u => u.id !== userId);
+    setUsers(updatedUsers);
+    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
+    if (user) {
+      addAuditLog(user.name, 'admin', 'DELETE_USER', `Deleted user account: ${userId}`);
+    }
+  };
+
+  const verifyDonor = (donorUserId, statusOrIsVerified) => {
+    const status = typeof statusOrIsVerified === 'boolean'
+      ? (statusOrIsVerified ? 'camp_verified' : 'unverified')
+      : statusOrIsVerified;
     const updatedUsers = users.map(u => {
       if (u.id === donorUserId) {
         return { ...u, verification_status: status };
@@ -359,7 +259,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Flag/Unflag Donor
   const flagDonor = (donorUserId, isFlagged) => {
     const updatedUsers = users.map(u => {
       if (u.id === donorUserId) {
@@ -375,35 +274,71 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Create Blood Request (Hospital only)
+  const toggleAvailability = (userId) => {
+    const updatedUsers = users.map(u => {
+      if (u.id === userId) {
+        const updated = { ...u, is_available: !u.is_available };
+        if (userId === user?.id) {
+          setUser(updated);
+          localStorage.setItem('rehabnation_current_user', JSON.stringify(updated));
+        }
+        return updated;
+      }
+      return u;
+    });
+    setUsers(updatedUsers);
+    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
+  };
+
+  // Cooldown calculation (56-day rule)
+  const isEligibleToDonate = (u) => {
+    if (!u.last_donation_date) return true;
+    const diffTime = Math.abs(new Date() - new Date(u.last_donation_date));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 56;
+  };
+
   const createRequest = (requestData) => {
     const reqId = 'r_' + Date.now();
     const compatibilityMatrix = BLOOD_COMPATIBILITY[requestData.blood_type] || [requestData.blood_type];
 
-    // Find compatible and available donors (exclude flagged)
-    const activeDonors = users.filter(
-      u => u.role === 'donor' && 
-           u.is_available && 
-           !u.is_flagged && 
-           compatibilityMatrix.includes(u.blood_type) &&
-           (!requestData.city || u.city.toLowerCase() === requestData.city.toLowerCase())
-    );
+    // Find eligible matching users
+    const activeUsers = users.filter(u => {
+      const isUser = u.role === 'user';
+      const isNotRequester = u.id !== user?.id && u.id !== requestData.requester_id;
+      const isAvailable = u.is_available;
+      const isNotSuspended = u.status !== 'suspended';
+      const isNotFlagged = !u.is_flagged;
+      const isCompatible = compatibilityMatrix.includes(u.blood_type);
+      const isWeightEligible = (parseFloat(u.weight_kg) || 0) >= 50;
+      const isHbEligible = (parseFloat(u.hemoglobin_level) || 0) >= 12.5;
+      const isCooldownEligible = isEligibleToDonate(u);
+      
+      let isLocationMatch = true;
+      if (requestData.location) {
+        const locLower = requestData.location.toLowerCase();
+        const cityLower = u.city?.toLowerCase() || '';
+        const distLower = u.district?.toLowerCase() || '';
+        isLocationMatch = cityLower.includes(locLower) || distLower.includes(locLower) || locLower.includes(cityLower) || locLower.includes(distLower);
+      }
 
-    // 1. Create request record
+      return isUser && isNotRequester && isAvailable && isNotSuspended && isNotFlagged && isCompatible && isWeightEligible && isHbEligible && isCooldownEligible && isLocationMatch;
+    });
+
     const newRequest = {
       id: reqId,
-      hospital_id: requestData.hospital_id,
+      requester_id: user?.id || requestData.requester_id || 'u_guest',
+      patient_name: requestData.patient_name,
       hospital_name: requestData.hospital_name,
+      location: requestData.location,
       blood_type: requestData.blood_type,
-      compatible_types: compatibilityMatrix,
       units_needed: Number(requestData.units_needed),
       units_fulfilled: 0,
       urgency: requestData.urgency,
-      status: 'open',
+      phone: requestData.phone,
       notes: requestData.notes,
-      response_deadline: requestData.response_deadline,
-      expires_at: requestData.expires_at,
-      matching_donor_count: activeDonors.length,
+      status: 'open',
+      matching_donor_count: activeUsers.length,
       created_at: new Date().toISOString()
     };
 
@@ -411,29 +346,26 @@ export function AuthProvider({ children }) {
     setRequests(updatedRequests);
     localStorage.setItem('rehabnation_requests', JSON.stringify(updatedRequests));
 
-    // 2. Generate matches with pending responses
     const newMatches = [...matches];
     const newNotifications = [...notifications];
 
-    activeDonors.forEach(donor => {
-      // Add match record (contact details are contained, but visibility is guarded in UI)
+    activeUsers.forEach(matchingUser => {
       newMatches.push({
-        id: 'm_' + Date.now() + '_' + donor.id,
+        id: 'm_' + Date.now() + '_' + matchingUser.id,
         request_id: reqId,
-        donor_id: donor.id,
-        donor_name: donor.name,
-        blood_type: donor.blood_type,
-        phone: donor.phone,
-        email: donor.email,
+        donor_id: matchingUser.id,
+        donor_name: matchingUser.name,
+        blood_type: matchingUser.blood_type,
+        phone: matchingUser.phone,
+        email: matchingUser.email,
         response: 'pending',
         responded_at: null,
         outcome: null
       });
 
-      // Add notification for donor
       newNotifications.unshift({
-        id: 'n_' + Date.now() + '_' + donor.id,
-        donor_id: donor.id,
+        id: 'n_' + Date.now() + '_' + matchingUser.id,
+        donor_id: matchingUser.id,
         type: 'blood_request',
         title: `🚨 Emergency: ${requestData.blood_type} Needed`,
         body: `${requestData.hospital_name} has requested compatible blood. Respond availability immediately.`,
@@ -449,12 +381,13 @@ export function AuthProvider({ children }) {
     setNotifications(newNotifications);
     localStorage.setItem('rehabnation_notifications', JSON.stringify(newNotifications));
 
-    addAuditLog(requestData.hospital_name, 'hospital_staff', 'CREATE_REQUEST', `Created blood request ${reqId} matching ${activeDonors.length} donors`);
+    if (user) {
+      addAuditLog(user.name, user.role, 'CREATE_REQUEST', `Created blood request ${reqId} matching ${activeUsers.length} donors`);
+    }
 
     return { success: true, reqId };
   };
 
-  // Donor Responds Available/Unavailable to Request
   const respondToRequest = (matchId, response) => {
     let affectedReqId = null;
     let affectedDonorName = '';
@@ -476,11 +409,10 @@ export function AuthProvider({ children }) {
     localStorage.setItem('rehabnation_matches', JSON.stringify(updatedMatches));
 
     if (user) {
-      addAuditLog(affectedDonorName, 'donor', 'RESPOND_' + response.toUpperCase(), `Responded ${response} to request ${affectedReqId}`);
+      addAuditLog(affectedDonorName, 'user', 'RESPOND_' + response.toUpperCase(), `Responded ${response} to request ${affectedReqId}`);
     }
   };
 
-  // Record Donation Outcome (Hospital only)
   const recordOutcome = (matchId, outcome) => {
     let donorId = null;
     let reqId = null;
@@ -496,11 +428,9 @@ export function AuthProvider({ children }) {
     setMatches(updatedMatches);
     localStorage.setItem('rehabnation_matches', JSON.stringify(updatedMatches));
 
-    // If successfully donated, update donor profile metrics and request progress
     if (outcome === 'donated') {
-      // 1. Update donor stats
       const updatedUsers = users.map(u => {
-        if (u.id === donorId || u.donor_id === donorId) {
+        if (u.id === donorId) {
           return {
             ...u,
             donation_count: (Number(u.donation_count) || 0) + 1,
@@ -512,11 +442,10 @@ export function AuthProvider({ children }) {
       setUsers(updatedUsers);
       localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
 
-      // 2. Update request progress
       const updatedRequests = requests.map(r => {
         if (r.id === reqId) {
           const newFlippedUnits = (Number(r.units_fulfilled) || 0) + 1;
-          const status = newFlippedUnits >= r.units_needed ? 'fulfilled' : 'partially_fulfilled';
+          const status = newFlippedUnits >= r.units_needed ? 'fulfilled' : 'open';
           return {
             ...r,
             units_fulfilled: newFlippedUnits,
@@ -528,7 +457,6 @@ export function AuthProvider({ children }) {
       setRequests(updatedRequests);
       localStorage.setItem('rehabnation_requests', JSON.stringify(updatedRequests));
 
-      // 3. Add notification for donor thank you
       const newNotifications = [...notifications];
       newNotifications.unshift({
         id: 'n_thankyou_' + Date.now(),
@@ -545,16 +473,20 @@ export function AuthProvider({ children }) {
     }
 
     if (user) {
-      addAuditLog(user.name, 'hospital_staff', 'RECORD_OUTCOME', `Recorded donation outcome ${outcome} for match ${matchId}`);
+      addAuditLog(user.name, user.role, 'RECORD_OUTCOME', `Recorded donation outcome ${outcome} for match ${matchId}`);
     }
   };
+
+  // Legacy mappings for compile protection
+  const suspendHospitalAccount = suspendUserAccount;
+  const createHospitalAccount = () => ({ success: false, error: 'Hospital Portal deprecated' });
+  const updateHospitalAccount = () => ({ success: false, error: 'Hospital Portal deprecated' });
 
   return (
     <AuthContext.Provider
       value={{
         user,
         users,
-        hospitals,
         requests,
         matches,
         notifications,
@@ -562,14 +494,19 @@ export function AuthProvider({ children }) {
         login,
         registerUser,
         logout,
-        createHospitalAccount,
-        updateHospitalAccount,
-        suspendHospitalAccount,
+        updateUserProfile,
+        suspendUserAccount,
+        deleteUserAccount,
         verifyDonor,
         flagDonor,
+        toggleAvailability,
         createRequest,
         respondToRequest,
-        recordOutcome
+        recordOutcome,
+        // Legacy mappings
+        suspendHospitalAccount,
+        createHospitalAccount,
+        updateHospitalAccount
       }}
     >
       {children}

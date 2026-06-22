@@ -22,25 +22,7 @@ export default function ContactPage() {
       {/* Navbar */}
       <nav className="landing-nav">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-          <div style={{
-            width: 38, height: 38, background: 'var(--red-600)',
-            borderRadius: 'var(--radius-lg)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            boxShadow: 'var(--shadow-red)'
-          }}>
-            <Droplets size={18} color="#fff" />
-          </div>
-          <div>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontWeight: 800,
-              fontSize: 'var(--text-sm)', color: 'var(--zinc-950)',
-              lineHeight: 1.2
-            }}>RehabNation</div>
-            <div style={{
-              fontSize: 10, color: 'var(--red-600)', fontWeight: 700,
-              textTransform: 'uppercase', letterSpacing: 'var(--tracking-widest)'
-            }}>Blood Network</div>
-          </div>
+          <img src="/logo.png" alt="RehabNation Blood Network" className="auth-logo-img" style={{ height: 42, width: 'auto' }} />
         </div>
         <div className="flex items-center gap-4">
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--zinc-600)', fontWeight: 600, cursor: 'pointer' }} onClick={() => navigate('/')}>Home</span>

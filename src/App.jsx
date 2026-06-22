@@ -6,64 +6,50 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import AppLayout from './components/layout/AppLayout';
 
 // Public pages
-import LandingPage          from './pages/LandingPage';
-import DonorLoginPage       from './pages/DonorLoginPage';
-import HospitalLoginPage    from './pages/HospitalLoginPage';
-import RegisterPage         from './pages/RegisterPage';
-import ContactPage          from './pages/ContactPage';
-import { PublicFindBlood, PublicEmergencyRequest } from './pages/PublicPages';
+import LandingPage      from './pages/LandingPage';
+import LoginPage        from './pages/LoginPage';
+import RegisterPage     from './pages/RegisterPage';
+import ContactPage      from './pages/ContactPage';
+import FindBloodPage    from './pages/FindBloodPage';
+import EmergencyFeedPage from './pages/EmergencyFeedPage';
 
-// Donor pages
-import DonorDashboard      from './pages/donor/DonorDashboard';
-import DonorNotifications  from './pages/donor/DonorNotifications';
-import DonorRequests       from './pages/donor/DonorRequests';
-import DonorHistory        from './pages/donor/DonorHistory';
-import DonorProfile        from './pages/donor/DonorProfile';
-import DonorSettings       from './pages/donor/DonorSettings';
-
-// Hospital pages
-import HospitalDashboard   from './pages/hospital/HospitalDashboard';
-import HospitalRequests    from './pages/hospital/HospitalRequests';
-import CreateRequest       from './pages/hospital/CreateRequest';
-import HospitalSettings    from './pages/hospital/HospitalSettings';
+// User pages
+import UserDashboard    from './pages/user/UserDashboard';
+import UserNotifications from './pages/user/UserNotifications';
+import UserRequests     from './pages/user/UserRequests';
+import CreateRequest    from './pages/user/CreateRequest';
+import UserProfile      from './pages/user/UserProfile';
+import UserSettings     from './pages/user/UserSettings';
 
 // Admin pages
-import AdminLoginPage      from './pages/admin/AdminLoginPage';
-import AdminDashboard      from './pages/admin/AdminDashboard';
-import AdminDonors         from './pages/admin/AdminDonors';
-import AdminHospitals      from './pages/admin/AdminHospitals';
-import AdminRequests       from './pages/admin/AdminRequests';
-import AdminAuditLogs      from './pages/admin/AdminAuditLogs';
-import AdminSettings       from './pages/admin/AdminSettings';
-import AdminReports        from './pages/admin/AdminReports';
+import AdminLoginPage   from './pages/admin/AdminLoginPage';
+import AdminDashboard   from './pages/admin/AdminDashboard';
+import AdminUsers       from './pages/admin/AdminUsers';
+import AdminRequests    from './pages/admin/AdminRequests';
+import AdminAuditLogs   from './pages/admin/AdminAuditLogs';
+import AdminSettings    from './pages/admin/AdminSettings';
+import AdminReports     from './pages/admin/AdminReports';
 
-// Protected route wrapper for Public App
-function PublicProtected({ role, children }) {
+// Protected route wrapper for User App
+function UserProtected({ children }) {
   const { user } = useAuth();
-  
-  if (!user) {
-    if (role === 'donor') return <Navigate to="/donor-login" replace />;
-    if (role === 'hospital') return <Navigate to="/hospital-login" replace />;
-    return <Navigate to="/" replace />;
-  }
-  
-  if (role && user.role !== role) {
-    if (user.role === 'donor') return <Navigate to="/donor" replace />;
-    if (user.role === 'hospital') return <Navigate to="/hospital" replace />;
-    return <Navigate to="/" replace />;
-  }
-  
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'user') return <Navigate to="/" replace />;
   return children;
 }
 
 // Protected route wrapper for Admin Panel
 function AdminProtected({ children }) {
   const { user } = useAuth();
-  
-  if (!user || user.role !== 'admin') {
-    return <Navigate to="/login" replace />;
-  }
-  
+  if (!user || user.role !== 'admin') return <Navigate to="/login" replace />;
+  return children;
+}
+
+// Redirect logged-in users away from login/register
+function PublicOnly({ children }) {
+  const { user } = useAuth();
+  if (user?.role === 'user') return <Navigate to="/dashboard" replace />;
+  if (user?.role === 'admin') return <Navigate to="/" replace />;
   return children;
 }
 
@@ -73,34 +59,27 @@ function PublicAppRoutes() {
     <Routes>
       {/* Public Pages */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/donor-login" element={<DonorLoginPage />} />
-      <Route path="/hospital-login" element={<HospitalLoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
+      <Route path="/register" element={<PublicOnly><RegisterPage /></PublicOnly>} />
       <Route path="/contact" element={<ContactPage />} />
-      <Route path="/find-blood" element={<PublicFindBlood />} />
-      <Route path="/emergency-request" element={<PublicEmergencyRequest />} />
-      
-      {/* Donor Area */}
-      <Route path="/donor" element={
-        <PublicProtected role="donor"><AppLayout /></PublicProtected>
-      }>
-        <Route index element={<DonorDashboard />} />
-        <Route path="notifications" element={<DonorNotifications />} />
-        <Route path="requests" element={<DonorRequests />} />
-        <Route path="history" element={<DonorHistory />} />
-        <Route path="profile" element={<DonorProfile />} />
-        <Route path="settings" element={<DonorSettings />} />
+      <Route path="/find-blood" element={<FindBloodPage />} />
+      <Route path="/emergency-request" element={<EmergencyFeedPage />} />
+
+      {/* User Dashboard */}
+      <Route path="/" element={<UserProtected><AppLayout /></UserProtected>}>
+        <Route path="dashboard" element={<UserDashboard />} />
+        <Route path="notifications" element={<UserNotifications />} />
+        <Route path="my-requests" element={<UserRequests />} />
+        <Route path="request-blood" element={<CreateRequest />} />
+        <Route path="profile" element={<UserProfile />} />
+        <Route path="settings" element={<UserSettings />} />
       </Route>
 
-      {/* Hospital Area */}
-      <Route path="/hospital" element={
-        <PublicProtected role="hospital"><AppLayout /></PublicProtected>
-      }>
-        <Route index element={<HospitalDashboard />} />
-        <Route path="requests" element={<HospitalRequests />} />
-        <Route path="requests/new" element={<CreateRequest />} />
-        <Route path="settings" element={<HospitalSettings />} />
-      </Route>
+      {/* Legacy redirects */}
+      <Route path="/donor-login" element={<Navigate to="/login" replace />} />
+      <Route path="/hospital-login" element={<Navigate to="/login" replace />} />
+      <Route path="/donor" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/donor/*" element={<Navigate to="/dashboard" replace />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -114,14 +93,11 @@ function AdminAppRoutes() {
     <Routes>
       {/* Admin Login */}
       <Route path="/login" element={<AdminLoginPage />} />
-      
+
       {/* Admin Panel Dashboard */}
-      <Route path="/" element={
-        <AdminProtected><AppLayout /></AdminProtected>
-      }>
+      <Route path="/" element={<AdminProtected><AppLayout /></AdminProtected>}>
         <Route index element={<AdminDashboard />} />
-        <Route path="donors" element={<AdminDonors />} />
-        <Route path="hospitals" element={<AdminHospitals />} />
+        <Route path="users" element={<AdminUsers />} />
         <Route path="requests" element={<AdminRequests />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="audit" element={<AdminAuditLogs />} />
@@ -140,7 +116,7 @@ export default function App() {
 
   if (isAdminPanel) {
     return (
-      <BrowserRouter basename={isLocalAdmin ? "/admin-panel" : "/"}>
+      <BrowserRouter basename={isLocalAdmin ? '/admin-panel' : '/'}>
         <AuthProvider>
           <AdminAppRoutes />
         </AuthProvider>

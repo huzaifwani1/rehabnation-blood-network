@@ -18,7 +18,10 @@ export function PublicFindBlood() {
 
   return (
     <div className="landing" style={{ minHeight: '100vh', background: '#fff' }}>
-      <nav className="landing-nav">
+      <nav className="landing-nav" style={{ justifyContent: 'space-between' }}>
+        <div className="flex items-center gap-3" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+          <img src="/logo.png" alt="RehabNation Blood Network" style={{ height: 38, width: 'auto' }} />
+        </div>
         <button className="btn btn-ghost btn-sm" onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <ArrowLeft size={14} /> Back to Home
         </button>
@@ -103,7 +106,10 @@ export function PublicEmergencyRequest() {
 
   return (
     <div className="landing" style={{ minHeight: '100vh', background: '#fff' }}>
-      <nav className="landing-nav">
+      <nav className="landing-nav" style={{ justifyContent: 'space-between' }}>
+        <div className="flex items-center gap-3" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+          <img src="/logo.png" alt="RehabNation Blood Network" style={{ height: 38, width: 'auto' }} />
+        </div>
         <button className="btn btn-ghost btn-sm" onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <ArrowLeft size={14} /> Back to Home
         </button>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Droplets, Eye, EyeOff, User, Building2, Shield } from 'lucide-react';
+import { Droplets, Eye, EyeOff, User, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -9,39 +9,46 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
-  const [role, setRole] = useState('donor');
-
+  const [role, setRole] = useState('user');
   const [error, setError] = useState('');
 
   const handleLogin = (e) => {
     e.preventDefault();
     const result = login(email, password, role);
     if (result.success) {
-      if (role === 'donor') navigate('/donor');
-      if (role === 'admin') navigate('/admin');
-      if (role === 'hospital') navigate('/hospital');
+      if (role === 'user') {
+        navigate('/dashboard');
+      } else if (role === 'admin') {
+        const { hostname, port } = window.location;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          window.location.href = `http://admin.localhost:${port || '5174'}/`;
+        } else if (hostname.includes('rhfi.org.in')) {
+          window.location.href = 'http://admin.rhfi.org.in';
+        } else {
+          window.location.href = '/admin-panel';
+        }
+      }
     } else {
       setError(result.error);
     }
   };
 
   const roles = [
-    { value: 'donor',    label: 'Donor',    icon: User,      color: 'var(--red-600)' },
-    { value: 'hospital', label: 'Hospital', icon: Building2, color: 'var(--color-info)' },
-    { value: 'admin',    label: 'Admin',    icon: Shield,    color: 'var(--color-warning)' },
+    { value: 'user',  label: 'User Portal',  icon: User,   color: 'var(--red-600)' },
+    { value: 'admin', label: 'Admin Portal', icon: Shield, color: 'var(--color-warning)' },
   ];
 
   return (
     <div className="auth-page">
       <div className="auth-bg-pattern" />
       <div className="auth-panel">
-        <div className="auth-logo">
+        <div className="auth-logo" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
           <img src="/logo.png" alt="RehabNation Blood Network" className="auth-logo-img" />
         </div>
 
         <div className="auth-card animate-slideUp">
           <h2>Welcome back</h2>
-          <p>Sign in to access your portal</p>
+          <p>Sign in to access the RehabNation Blood Network</p>
 
           {error && (
             <div id="login-error" className="alert alert-critical" style={{ marginTop: 'var(--space-4)', marginBottom: 'var(--space-2)' }}>
@@ -79,6 +86,7 @@ export default function LoginPage() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError(''); }}
+                required
               />
             </div>
 
@@ -93,6 +101,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={e => { setPassword(e.target.value); setError(''); }}
                   style={{ paddingRight: 44 }}
+                  required
                 />
                 <button
                   type="button"
@@ -104,18 +113,14 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <span style={{ fontSize: '0.875rem', color: 'var(--brand-red-light)', cursor: 'pointer' }}>Forgot password?</span>
-            </div>
-
-            <button id="login-submit-btn" type="submit" className="btn btn-primary w-full btn-lg">
+            <button id="login-submit-btn" type="submit" className="btn btn-primary w-full btn-lg" style={{ marginTop: 'var(--space-4)' }}>
               Sign In
             </button>
           </form>
 
           <div className="auth-switch">
             Don't have an account?{' '}
-            <a onClick={() => navigate('/register')}>Register here</a>
+            <a onClick={() => navigate('/register')} style={{ cursor: 'pointer', color: 'var(--red-600)', fontWeight: 600 }}>Register here</a>
           </div>
         </div>
       </div>
