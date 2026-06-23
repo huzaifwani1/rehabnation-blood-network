@@ -1,7 +1,13 @@
 import axios from 'axios';
 
-// Vite environments can supply VITE_API_URL, fallback to localhost port 5000
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+let API_URL = import.meta.env.VITE_API_URL;
+
+if (!API_URL) {
+  console.warn("VITE_API_URL environment variable is missing. Falling back to production backend: https://rehabnation-blood-network-11.onrender.com/api");
+  API_URL = 'https://rehabnation-blood-network-11.onrender.com/api';
+}
+
+console.log("Resolved API URL:", API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
