@@ -26,10 +26,10 @@ export default function RegisterPage() {
 
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
-  const handleDonorSubmit = () => {
-    const result = registerUser({
+  const handleDonorSubmit = async () => {
+    console.log('--- SUBMITTING REGISTRATION FORM ---');
+    console.log('Form data being sent to registerUser:', {
       email: form.email,
-      password: form.password,
       full_name: form.full_name,
       phone: form.phone,
       gender: form.gender,
@@ -44,14 +44,42 @@ export default function RegisterPage() {
       last_donation_date: form.last_donation_date,
       donation_count: form.donation_count,
     });
+    
+    try {
+      const result = await registerUser({
+        email: form.email,
+        password: form.password,
+        full_name: form.full_name,
+        phone: form.phone,
+        gender: form.gender,
+        blood_type: form.blood_type,
+        dob: form.dob,
+        weight_kg: form.weight,
+        hemoglobin_level: form.hemoglobin_level,
+        district: form.district,
+        address: form.address,
+        city: form.city,
+        region: form.region,
+        last_donation_date: form.last_donation_date,
+        donation_count: form.donation_count,
+      });
 
-    if (result.success) {
-      setSubmitted(true);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
-    } else {
-      setError(result.error);
+      console.log('Result received from registerUser:', result);
+
+      if (result.success) {
+        console.log('Registration succeeded! Setting submitted to true.');
+        setSubmitted(true);
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      } else {
+        console.warn('Registration failed with error:', result.error);
+        setError(result.error);
+        setStep(0);
+      }
+    } catch (e) {
+      console.error('CRITICAL: Exception thrown in handleDonorSubmit:', e);
+      setError(e.message || 'An unexpected error occurred');
       setStep(0);
     }
   };
@@ -68,15 +96,6 @@ export default function RegisterPage() {
     }
     if (!form.password || form.password.length < 8) {
       setError('Password must be at least 8 characters');
-      return;
-    }
-
-    const currentUsers = JSON.parse(localStorage.getItem('rehabnation_users') || '[]');
-    const exists = currentUsers.some(
-      u => u.email.toLowerCase() === form.email.trim().toLowerCase()
-    );
-    if (exists) {
-      setError('Account already exists');
       return;
     }
 

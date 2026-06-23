@@ -25,7 +25,7 @@ export default function CreateRequest() {
 
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -36,7 +36,7 @@ export default function CreateRequest() {
     if (!form.phone.trim()) return setError('Contact phone number is required');
 
     setLoading(true);
-    const result = createRequest(form);
+    const result = await createRequest(form);
     setLoading(false);
 
     if (result.success) {

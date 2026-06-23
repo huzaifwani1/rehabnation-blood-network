@@ -43,12 +43,12 @@ export default function UserProfile() {
 
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setError('');
     if (!form.name?.trim()) return setError('Name is required');
     if (!form.phone?.trim()) return setError('Phone number is required');
 
-    const result = updateUserProfile(user.id, {
+    const result = await updateUserProfile(user.id, {
       name: form.name,
       phone: form.phone,
       email: form.email,

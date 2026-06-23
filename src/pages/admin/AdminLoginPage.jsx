@@ -11,9 +11,9 @@ export default function AdminLoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const result = login(email, password, 'admin');
+    const result = await login(email, password, 'admin');
     if (result.success) {
       navigate('/');
     } else {

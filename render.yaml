@@ -1,0 +1,32 @@
+services:
+  # Backend Web Service
+  - type: web
+    name: rehabnation-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  # Frontend Static Site
+  - type: web
+    name: rehabnation-frontend
+    env: static
+    plan: free
+    rootDir: .
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    envVars:
+      - key: VITE_API_URL
+        value: https://rehabnation-backend.onrender.com/api # Replace with your deployed backend URL

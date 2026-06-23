@@ -15,7 +15,16 @@ const validateEmail = (email) => {
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
+  console.log('REGISTER REQUEST RECEIVED');
   const { email, password, full_name, phone, ...rest } = req.body;
+  
+  const logBody = { email, full_name, phone, ...rest };
+  console.log('REGISTER BODY:', JSON.stringify(logBody));
+  if (email) {
+    console.log(`REGISTER EMAIL: ${email}`);
+  } else {
+    console.log(`REGISTER PHONE: ${phone}`);
+  }
 
   try {
     if (email && email.trim() && !validateEmail(email)) {
@@ -61,7 +70,9 @@ router.post('/register', async (req, res) => {
       ...rest
     });
 
+    console.log('ATTEMPTING USER SAVE');
     await newUser.save();
+    console.log('USER SAVED SUCCESSFULLY');
 
     // Create JWT Token
     const token = jwt.sign(
@@ -81,6 +92,7 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (error) {
+    console.error('REGISTER ERROR:', error.stack || error.message || error);
     return res.status(500).json({ error: error.message });
   }
 });

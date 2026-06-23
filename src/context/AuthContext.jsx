@@ -1,96 +1,51 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-  MOCK_DONORS,
-  MOCK_REQUESTS,
-  MOCK_MATCHES,
-  MOCK_DONOR_NOTIFICATIONS,
-  MOCK_AUDIT_LOGS,
-  BLOOD_COMPATIBILITY
-} from '../data/mockData';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
 
 const validateEmailFormat = (email) => {
-  if (!email) return true; // Email is optional now
+  if (!email) return true; // Email is optional
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(String(email).toLowerCase());
 };
 
-// Initial setup of users in localStorage if not exists or if legacy exists
-const initializeUsers = () => {
-  const stored = localStorage.getItem('rehabnation_users');
-  if (stored) {
-    const parsed = JSON.parse(stored);
-    // Auto-detect and migrate legacy role schemas ('donor' or 'hospital')
-    const hasLegacy = parsed.some(u => u.role === 'donor' || u.role === 'hospital');
-    if (!hasLegacy) return parsed;
-  }
-
-  const initialUsers = [];
-
-  // Add default admin
-  initialUsers.push({
-    id: 'u_admin',
-    role: 'admin',
-    email: 'admin@rehabnation.org',
-    password: 'password123',
-    name: 'RehabNation Admin',
-    initials: 'RA',
-    status: 'approved',
-  });
-
-  // Map MOCK_DONORS to unified 'user' role
-  MOCK_DONORS.forEach((donor, index) => {
-    initialUsers.push({
-      id: 'u_' + donor.id,
-      role: 'user',
-      email: donor.email || '',
-      password: 'password123',
-      name: donor.name,
-      dob: donor.dob || '1995-05-15',
-      gender: donor.gender || (index % 2 === 0 ? 'male' : 'female'),
-      phone: donor.phone,
-      blood_type: donor.blood_type,
-      city: donor.city,
-      region: donor.region,
-      district: donor.district || (index % 2 === 0 ? 'Lagos Mainland' : 'Lagos Island'),
-      address: donor.address || 'No. 12 Health Way Road',
-      current_city_district: donor.current_city_district || donor.city,
-      weight_kg: donor.weight_kg || 65,
-      hemoglobin_level: donor.hemoglobin_level || '13.5',
-      last_donation_date: donor.last_donation_date || '',
-      donation_count: donor.donation_count || 0,
-      is_available: donor.is_available,
-      is_flagged: donor.is_flagged || false,
-      verification_status: donor.verification_status || (index % 3 === 0 ? 'camp_verified' : 'unverified'),
-      status: donor.status || 'approved',
-      created_at: donor.created_at || '2024-03-15',
-      initials: donor.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
-    });
-  });
-
-  localStorage.setItem('rehabnation_users', JSON.stringify(initialUsers));
-  return initialUsers;
-};
-
-const getOrInitialize = (key, defaultData) => {
-  const stored = localStorage.getItem(key);
-  if (stored) return JSON.parse(stored);
-  localStorage.setItem(key, JSON.stringify(defaultData));
-  return defaultData;
+const mapUserResponse = (u) => {
+  if (!u) return null;
+  return {
+    id: u._id || u.id,
+    role: u.role,
+    email: u.email,
+    name: u.name,
+    phone: u.phone,
+    dob: u.dob,
+    gender: u.gender,
+    blood_type: u.blood_type,
+    district: u.district,
+    address: u.address,
+    weight_kg: u.weight_kg,
+    hemoglobin_level: u.hemoglobin_level,
+    last_donation_date: u.last_donation_date,
+    donation_count: u.donation_count,
+    verification_status: u.verification_status,
+    is_available: u.is_available,
+    initials: u.initials,
+    status: u.status,
+    is_flagged: u.is_flagged,
+    created_at: u.created_at
+  };
 };
 
 export function AuthProvider({ children }) {
-  const [users, setUsers] = useState(() => initializeUsers());
-  const [requests, setRequests] = useState(() => getOrInitialize('rehabnation_requests', MOCK_REQUESTS));
-  const [matches, setMatches] = useState(() => getOrInitialize('rehabnation_matches', MOCK_MATCHES));
-  const [notifications, setNotifications] = useState(() => getOrInitialize('rehabnation_notifications', MOCK_DONOR_NOTIFICATIONS));
-  const [auditLogs, setAuditLogs] = useState(() => getOrInitialize('rehabnation_audit_logs', MOCK_AUDIT_LOGS));
-
-  const [user, setUser] = useState(() => {
-    const storedUser = localStorage.getItem('rehabnation_current_user');
-    return storedUser ? JSON.parse(storedUser) : null;
+  const [user, setUser] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [requests, setRequests] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [auditLogs, setAuditLogs] = useState(() => {
+    const stored = localStorage.getItem('rehabnation_audit_logs');
+    return stored ? JSON.parse(stored) : [];
   });
+  const [loading, setLoading] = useState(true);
 
   const addAuditLog = (actorName, actorRole, action, target) => {
     const newLog = {
@@ -107,7 +62,170 @@ export function AuthProvider({ children }) {
     localStorage.setItem('rehabnation_audit_logs', JSON.stringify(updated));
   };
 
-  const login = (email, password, role) => {
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get('/users');
+      setUsers((res.data || []).map(mapUserResponse));
+    } catch (e) {
+      console.error('Error fetching users:', e);
+    }
+  };
+
+  const fetchAllRequestsAndMatches = async (currentUser) => {
+    try {
+      const res = await api.get('/requests');
+      const reqList = res.data || [];
+      
+      const mappedRequests = reqList.map(r => ({
+        id: r._id,
+        requester_id: r.requester?._id || r.requester,
+        requester_name: r.requester?.name || '',
+        patient_name: r.patient_name,
+        hospital_name: r.hospital_name,
+        location: r.district,
+        blood_type: r.blood_type,
+        units_needed: r.units_needed,
+        units_fulfilled: r.units_fulfilled || 0,
+        urgency: r.urgency,
+        phone: r.phone,
+        notes: r.notes || '',
+        status: r.status,
+        matching_donor_count: r.matching_donor_count || 0,
+        created_at: r.created_at
+      }));
+      setRequests(mappedRequests);
+
+      // Now fetch details for relevant requests to populate matches
+      let relevantRequests = [];
+      if (currentUser.role === 'admin') {
+        relevantRequests = reqList;
+      } else {
+        relevantRequests = reqList.filter(r => (r.requester?._id || r.requester) === currentUser.id);
+      }
+
+      const matchPromises = relevantRequests.map(async (r) => {
+        try {
+          const detailRes = await api.get(`/requests/${r._id}`);
+          return detailRes.data.matches || [];
+        } catch (e) {
+          console.error('Error fetching request matches', r._id, e);
+          return [];
+        }
+      });
+
+      const allMatchesArrays = await Promise.all(matchPromises);
+      let requestMatches = allMatchesArrays.flat();
+
+      let donorMatches = [];
+      if (currentUser.role === 'user') {
+        try {
+          const donorMatchesRes = await api.get('/users/me/matches');
+          donorMatches = donorMatchesRes.data || [];
+        } catch (e) {
+          console.error('Error fetching donor matches', e);
+        }
+      }
+
+      const allRawMatches = [...requestMatches, ...donorMatches];
+      
+      const uniqueMatches = [];
+      const seenIds = new Set();
+      for (const m of allRawMatches) {
+        if (!seenIds.has(m._id)) {
+          seenIds.add(m._id);
+          uniqueMatches.push(m);
+        }
+      }
+
+      const mappedMatches = uniqueMatches.map(m => ({
+        id: m._id,
+        request_id: m.request?._id || m.request,
+        donor_id: m.donor?._id || m.donor,
+        donor_name: m.donor?.name || m.donor_name || 'Donor',
+        blood_type: m.donor?.blood_type || m.blood_type || '',
+        phone: m.donor?.phone || m.donor_phone || m.phone || '',
+        email: m.donor?.email || m.donor_email || m.email || '',
+        response: m.response,
+        responded_at: m.responded_at,
+        outcome: m.outcome
+      }));
+
+      setMatches(mappedMatches);
+    } catch (error) {
+      console.error('Error fetching requests and matches:', error);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get('/notifications');
+      const mapped = (res.data || []).map(n => ({
+        id: n._id,
+        donor_id: n.recipient?._id || n.recipient,
+        type: n.type,
+        title: n.title,
+        body: n.body,
+        is_read: n.is_read,
+        created_at: n.created_at,
+        request_id: n.request_id
+      }));
+      setNotifications(mapped);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const markNotificationAsRead = async (id) => {
+    try {
+      await api.patch(`/notifications/${id}/read`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } catch (e) {
+      console.error('Error marking notification as read:', e);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await api.patch('/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (e) {
+      console.error('Error marking all notifications as read:', e);
+    }
+  };
+
+  const loadAllSessionData = async (currentUser) => {
+    if (!currentUser) return;
+    await Promise.all([
+      currentUser.role === 'admin' ? fetchUsers() : Promise.resolve(),
+      fetchAllRequestsAndMatches(currentUser),
+      fetchNotifications()
+    ]);
+  };
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('rehabnation_token');
+      const cachedUser = localStorage.getItem('rehabnation_current_user');
+      
+      if (token && cachedUser) {
+        try {
+          const res = await api.get('/users/me');
+          const mapped = mapUserResponse(res.data);
+          setUser(mapped);
+          localStorage.setItem('rehabnation_current_user', JSON.stringify(mapped));
+          await loadAllSessionData(mapped);
+        } catch (e) {
+          console.error('Token verification failed:', e);
+          logout();
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
+  }, []);
+
+  const login = async (email, password, role) => {
     if (!email || !email.trim()) {
       return { success: false, error: 'Invalid email' };
     }
@@ -115,81 +233,77 @@ export function AuthProvider({ children }) {
       return { success: false, error: 'Invalid password' };
     }
 
-    const matchedUser = users.find(
-      u => u.email.toLowerCase() === email.trim().toLowerCase()
-    );
+    try {
+      const res = await api.post('/auth/login', { email, password });
+      if (res.data.success) {
+        const { token, user: rawUser } = res.data;
+        
+        if (rawUser.role !== role) {
+          return { success: false, error: 'Account does not exist' };
+        }
 
-    if (!matchedUser) {
-      return { success: false, error: 'Account does not exist' };
+        const mapped = mapUserResponse(rawUser);
+        localStorage.setItem('rehabnation_token', token);
+        localStorage.setItem('rehabnation_current_user', JSON.stringify(mapped));
+        setUser(mapped);
+        
+        addAuditLog(mapped.name, mapped.role, 'LOGIN', 'Successful login');
+        await loadAllSessionData(mapped);
+        
+        return { success: true };
+      }
+      return { success: false, error: 'Login failed' };
+    } catch (e) {
+      console.error('Login error', e);
+      return { success: false, error: e.response?.data?.error || e.message || 'Login failed' };
     }
-
-    if (matchedUser.role !== role) {
-      return { success: false, error: 'Account does not exist' };
-    }
-
-    if (matchedUser.password !== password) {
-      return { success: false, error: 'Invalid password' };
-    }
-
-    if (matchedUser.status === 'suspended') {
-      return { success: false, error: 'Account has been suspended' };
-    }
-
-    setUser(matchedUser);
-    localStorage.setItem('rehabnation_current_user', JSON.stringify(matchedUser));
-    addAuditLog(matchedUser.name, matchedUser.role, 'LOGIN', 'Successful login');
-    return { success: true };
   };
 
-  const registerUser = (userData) => {
+  const registerUser = async (userData) => {
+    console.log('--- AuthContext: registerUser triggered ---');
+    console.log('Received userData:', userData);
     const { email, password, full_name, phone, ...rest } = userData;
 
     if (email && email.trim() && !validateEmailFormat(email)) {
+      console.warn('registerUser failed: Invalid email format');
       return { success: false, error: 'Invalid email format' };
     }
 
     if (!password || password.length < 8) {
+      console.warn('registerUser failed: Password length less than 8');
       return { success: false, error: 'Password must be at least 8 characters' };
     }
 
-    if (email && email.trim()) {
-      const exists = users.some(
-        u => u.email.toLowerCase() === email.trim().toLowerCase()
-      );
-      if (exists) {
-        return { success: false, error: 'Account already exists' };
+    try {
+      console.log('Axios sending POST request to /auth/register...');
+      const res = await api.post('/auth/register', {
+        email,
+        password,
+        full_name,
+        phone,
+        ...rest
+      });
+
+      console.log('Axios registration response received:', res);
+
+      if (res.data.success) {
+        const { token, user: rawUser } = res.data;
+        const mapped = mapUserResponse(rawUser);
+        
+        localStorage.setItem('rehabnation_token', token);
+        localStorage.setItem('rehabnation_current_user', JSON.stringify(mapped));
+        setUser(mapped);
+        
+        addAuditLog(mapped.name, 'user', 'REGISTER', 'Registered as user');
+        await loadAllSessionData(mapped);
+        
+        return { success: true };
       }
+      return { success: false, error: 'Registration failed' };
+    } catch (e) {
+      console.error('Registration error', e);
+      return { success: false, error: e.response?.data?.error || e.message || 'Registration failed' };
     }
-
-    const initials = full_name
-      ? full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-      : 'U';
-
-    const newUser = {
-      id: 'u_' + Date.now(),
-      role: 'user',
-      email: email ? email.trim().toLowerCase() : '',
-      password,
-      name: full_name,
-      phone,
-      initials,
-      is_available: true,
-      donation_count: Number(userData.donation_count) || 0,
-      is_flagged: false,
-      verification_status: 'unverified',
-      status: 'approved',
-      created_at: new Date().toISOString(),
-      ...rest,
-    };
-
-    const updatedUsers = [...users, newUser];
-    setUsers(updatedUsers);
-    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
-
-    setUser(newUser);
-    localStorage.setItem('rehabnation_current_user', JSON.stringify(newUser));
-    addAuditLog(newUser.name, 'user', 'REGISTER', 'Registered as user');
-    return { success: true };
   };
 
   const logout = () => {
@@ -197,290 +311,215 @@ export function AuthProvider({ children }) {
       addAuditLog(user.name, user.role, 'LOGOUT', 'Logged out');
     }
     setUser(null);
+    setUsers([]);
+    setRequests([]);
+    setMatches([]);
+    setNotifications([]);
+    localStorage.removeItem('rehabnation_token');
     localStorage.removeItem('rehabnation_current_user');
   };
 
-  const updateUserProfile = (userId, profileData) => {
-    const updatedUsers = users.map(u => {
-      if (u.id === userId) {
-        const updated = { ...u, ...profileData };
-        if (userId === user?.id) {
-          setUser(updated);
-          localStorage.setItem('rehabnation_current_user', JSON.stringify(updated));
-        }
-        return updated;
-      }
-      return u;
-    });
-    setUsers(updatedUsers);
-    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
-    return { success: true };
+  const updateUserProfile = async (userId, profileData) => {
+    try {
+      const res = await api.put('/users/me', profileData);
+      const mapped = mapUserResponse(res.data);
+      setUser(mapped);
+      localStorage.setItem('rehabnation_current_user', JSON.stringify(mapped));
+      
+      // Update in local users list
+      setUsers(prev => prev.map(u => u.id === userId ? mapped : u));
+      return { success: true };
+    } catch (e) {
+      console.error('Profile update error', e);
+      return { success: false, error: e.response?.data?.error || e.message || 'Profile update failed' };
+    }
   };
 
-  const suspendUserAccount = (userId, isSuspended) => {
+  const suspendUserAccount = async (userId, isSuspended) => {
     const status = isSuspended ? 'suspended' : 'approved';
-    const updatedUsers = users.map(u => {
-      if (u.id === userId) {
-        return { ...u, status };
+    try {
+      const res = await api.patch(`/users/${userId}/suspend`, { status });
+      if (res.data.success) {
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, status } : u));
+        if (user) {
+          addAuditLog(user.name, 'admin', isSuspended ? 'SUSPEND_USER' : 'UNSUSPEND_USER', `Suspended user ${userId} set to ${isSuspended}`);
+        }
+        return { success: true };
       }
-      return u;
-    });
-    setUsers(updatedUsers);
-    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
-    if (user) {
-      addAuditLog(user.name, 'admin', isSuspended ? 'SUSPEND_USER' : 'UNSUSPEND_USER', `Suspended user ${userId} set to ${isSuspended}`);
+      return { success: false };
+    } catch (e) {
+      console.error(e);
+      return { success: false, error: e.response?.data?.error || e.message };
     }
   };
 
-  const deleteUserAccount = (userId) => {
-    const updatedUsers = users.filter(u => u.id !== userId);
-    setUsers(updatedUsers);
-    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
-    if (user) {
-      addAuditLog(user.name, 'admin', 'DELETE_USER', `Deleted user account: ${userId}`);
+  const deleteUserAccount = async (userId) => {
+    try {
+      const res = await api.delete(`/users/${userId}`);
+      if (res.data.success) {
+        setUsers(prev => prev.filter(u => u.id !== userId));
+        if (user) {
+          addAuditLog(user.name, 'admin', 'DELETE_USER', `Deleted user account: ${userId}`);
+        }
+        return { success: true };
+      }
+      return { success: false };
+    } catch (e) {
+      console.error(e);
+      return { success: false, error: e.response?.data?.error || e.message };
     }
   };
 
-  const verifyDonor = (donorUserId, statusOrIsVerified) => {
+  const verifyDonor = async (donorUserId, statusOrIsVerified) => {
     const status = typeof statusOrIsVerified === 'boolean'
       ? (statusOrIsVerified ? 'camp_verified' : 'unverified')
       : statusOrIsVerified;
-    const updatedUsers = users.map(u => {
-      if (u.id === donorUserId) {
-        return { ...u, verification_status: status };
-      }
-      return u;
-    });
-    setUsers(updatedUsers);
-    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
-
-    if (user) {
-      addAuditLog(user.name, 'admin', status === 'camp_verified' ? 'VERIFY_DONOR' : 'REVOKE_VERIFICATION', `Set donor ${donorUserId} verification to ${status}`);
-    }
-  };
-
-  const flagDonor = (donorUserId, isFlagged) => {
-    const updatedUsers = users.map(u => {
-      if (u.id === donorUserId) {
-        return { ...u, is_flagged: isFlagged };
-      }
-      return u;
-    });
-    setUsers(updatedUsers);
-    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
-
-    if (user) {
-      addAuditLog(user.name, 'admin', isFlagged ? 'FLAG_DONOR' : 'UNFLAG_DONOR', `Flagged status of ${donorUserId} to ${isFlagged}`);
-    }
-  };
-
-  const toggleAvailability = (userId) => {
-    const updatedUsers = users.map(u => {
-      if (u.id === userId) {
-        const updated = { ...u, is_available: !u.is_available };
-        if (userId === user?.id) {
-          setUser(updated);
-          localStorage.setItem('rehabnation_current_user', JSON.stringify(updated));
+    try {
+      const res = await api.patch(`/users/${donorUserId}/verify`, { verification_status: status });
+      if (res.data.success) {
+        setUsers(prev => prev.map(u => u.id === donorUserId ? { ...u, verification_status: status } : u));
+        if (donorUserId === user?.id) {
+          setUser(prev => ({ ...prev, verification_status: status }));
         }
-        return updated;
-      }
-      return u;
-    });
-    setUsers(updatedUsers);
-    localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
-  };
-
-  // Cooldown calculation (56-day rule)
-  const isEligibleToDonate = (u) => {
-    if (!u.last_donation_date) return true;
-    const diffTime = Math.abs(new Date() - new Date(u.last_donation_date));
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 56;
-  };
-
-  const createRequest = (requestData) => {
-    const reqId = 'r_' + Date.now();
-    const compatibilityMatrix = BLOOD_COMPATIBILITY[requestData.blood_type] || [requestData.blood_type];
-
-    // Find eligible matching users
-    const activeUsers = users.filter(u => {
-      const isUser = u.role === 'user';
-      const isNotRequester = u.id !== user?.id && u.id !== requestData.requester_id;
-      const isAvailable = u.is_available;
-      const isNotSuspended = u.status !== 'suspended';
-      const isNotFlagged = !u.is_flagged;
-      const isCompatible = compatibilityMatrix.includes(u.blood_type);
-      const isWeightEligible = (parseFloat(u.weight_kg) || 0) >= 50;
-      const isHbEligible = (parseFloat(u.hemoglobin_level) || 0) >= 12.5;
-      const isCooldownEligible = isEligibleToDonate(u);
-      
-      let isLocationMatch = true;
-      if (requestData.location) {
-        const locLower = requestData.location.toLowerCase();
-        const cityLower = u.city?.toLowerCase() || '';
-        const distLower = u.district?.toLowerCase() || '';
-        isLocationMatch = cityLower.includes(locLower) || distLower.includes(locLower) || locLower.includes(cityLower) || locLower.includes(distLower);
-      }
-
-      return isUser && isNotRequester && isAvailable && isNotSuspended && isNotFlagged && isCompatible && isWeightEligible && isHbEligible && isCooldownEligible && isLocationMatch;
-    });
-
-    const newRequest = {
-      id: reqId,
-      requester_id: user?.id || requestData.requester_id || 'u_guest',
-      patient_name: requestData.patient_name,
-      hospital_name: requestData.hospital_name,
-      location: requestData.location,
-      blood_type: requestData.blood_type,
-      units_needed: Number(requestData.units_needed),
-      units_fulfilled: 0,
-      urgency: requestData.urgency,
-      phone: requestData.phone,
-      notes: requestData.notes,
-      status: 'open',
-      matching_donor_count: activeUsers.length,
-      created_at: new Date().toISOString()
-    };
-
-    const updatedRequests = [newRequest, ...requests];
-    setRequests(updatedRequests);
-    localStorage.setItem('rehabnation_requests', JSON.stringify(updatedRequests));
-
-    const newMatches = [...matches];
-    const newNotifications = [...notifications];
-
-    activeUsers.forEach(matchingUser => {
-      newMatches.push({
-        id: 'm_' + Date.now() + '_' + matchingUser.id,
-        request_id: reqId,
-        donor_id: matchingUser.id,
-        donor_name: matchingUser.name,
-        blood_type: matchingUser.blood_type,
-        phone: matchingUser.phone,
-        email: matchingUser.email,
-        response: 'pending',
-        responded_at: null,
-        outcome: null
-      });
-
-      newNotifications.unshift({
-        id: 'n_' + Date.now() + '_' + matchingUser.id,
-        donor_id: matchingUser.id,
-        type: 'blood_request',
-        title: `🚨 Emergency: ${requestData.blood_type} Needed`,
-        body: `${requestData.hospital_name} has requested compatible blood. Respond availability immediately.`,
-        is_read: false,
-        created_at: new Date().toISOString(),
-        request_id: reqId
-      });
-    });
-
-    setMatches(newMatches);
-    localStorage.setItem('rehabnation_matches', JSON.stringify(newMatches));
-
-    setNotifications(newNotifications);
-    localStorage.setItem('rehabnation_notifications', JSON.stringify(newNotifications));
-
-    if (user) {
-      addAuditLog(user.name, user.role, 'CREATE_REQUEST', `Created blood request ${reqId} matching ${activeUsers.length} donors`);
-    }
-
-    return { success: true, reqId };
-  };
-
-  const respondToRequest = (matchId, response) => {
-    let affectedReqId = null;
-    let affectedDonorName = '';
-
-    const updatedMatches = matches.map(m => {
-      if (m.id === matchId) {
-        affectedReqId = m.request_id;
-        affectedDonorName = m.donor_name;
-        return {
-          ...m,
-          response,
-          responded_at: new Date().toISOString()
-        };
-      }
-      return m;
-    });
-
-    setMatches(updatedMatches);
-    localStorage.setItem('rehabnation_matches', JSON.stringify(updatedMatches));
-
-    if (user) {
-      addAuditLog(affectedDonorName, 'user', 'RESPOND_' + response.toUpperCase(), `Responded ${response} to request ${affectedReqId}`);
-    }
-  };
-
-  const recordOutcome = (matchId, outcome) => {
-    let donorId = null;
-    let reqId = null;
-
-    const updatedMatches = matches.map(m => {
-      if (m.id === matchId) {
-        donorId = m.donor_id;
-        reqId = m.request_id;
-        return { ...m, outcome };
-      }
-      return m;
-    });
-    setMatches(updatedMatches);
-    localStorage.setItem('rehabnation_matches', JSON.stringify(updatedMatches));
-
-    if (outcome === 'donated') {
-      const updatedUsers = users.map(u => {
-        if (u.id === donorId) {
-          return {
-            ...u,
-            donation_count: (Number(u.donation_count) || 0) + 1,
-            last_donation_date: new Date().toISOString().split('T')[0]
-          };
+        if (user) {
+          addAuditLog(user.name, 'admin', status === 'camp_verified' ? 'VERIFY_DONOR' : 'REVOKE_VERIFICATION', `Set donor ${donorUserId} verification to ${status}`);
         }
-        return u;
-      });
-      setUsers(updatedUsers);
-      localStorage.setItem('rehabnation_users', JSON.stringify(updatedUsers));
-
-      const updatedRequests = requests.map(r => {
-        if (r.id === reqId) {
-          const newFlippedUnits = (Number(r.units_fulfilled) || 0) + 1;
-          const status = newFlippedUnits >= r.units_needed ? 'fulfilled' : 'open';
-          return {
-            ...r,
-            units_fulfilled: newFlippedUnits,
-            status
-          };
-        }
-        return r;
-      });
-      setRequests(updatedRequests);
-      localStorage.setItem('rehabnation_requests', JSON.stringify(updatedRequests));
-
-      const newNotifications = [...notifications];
-      newNotifications.unshift({
-        id: 'n_thankyou_' + Date.now(),
-        donor_id: donorId,
-        type: 'outcome_recorded',
-        title: '❤️ Thank You for Donating!',
-        body: `Your blood donation has been successfully recorded. Thank you for your generosity in saving lives.`,
-        is_read: false,
-        created_at: new Date().toISOString(),
-        request_id: reqId
-      });
-      setNotifications(newNotifications);
-      localStorage.setItem('rehabnation_notifications', JSON.stringify(newNotifications));
-    }
-
-    if (user) {
-      addAuditLog(user.name, user.role, 'RECORD_OUTCOME', `Recorded donation outcome ${outcome} for match ${matchId}`);
+        return { success: true };
+      }
+      return { success: false };
+    } catch (e) {
+      console.error(e);
+      return { success: false, error: e.response?.data?.error || e.message };
     }
   };
 
-  // Legacy mappings for compile protection
+  const flagDonor = async (donorUserId, isFlagged) => {
+    try {
+      const res = await api.patch(`/users/${donorUserId}/flag`, { is_flagged: isFlagged });
+      if (res.data.success) {
+        setUsers(prev => prev.map(u => u.id === donorUserId ? { ...u, is_flagged: isFlagged } : u));
+        if (user) {
+          addAuditLog(user.name, 'admin', isFlagged ? 'FLAG_DONOR' : 'UNFLAG_DONOR', `Flagged status of ${donorUserId} to ${isFlagged}`);
+        }
+        return { success: true };
+      }
+      return { success: false };
+    } catch (e) {
+      console.error(e);
+      return { success: false, error: e.response?.data?.error || e.message };
+    }
+  };
+
+  const toggleAvailability = async (userId) => {
+    try {
+      const nextVal = !user.is_available;
+      const res = await api.put('/users/me', { is_available: nextVal });
+      const updatedUser = {
+        ...user,
+        is_available: res.data.is_available
+      };
+      setUser(updatedUser);
+      localStorage.setItem('rehabnation_current_user', JSON.stringify(updatedUser));
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_available: nextVal } : u));
+      return { success: true };
+    } catch (e) {
+      console.error(e);
+      return { success: false, error: e.response?.data?.error || e.message };
+    }
+  };
+
+  const createRequest = async (requestData) => {
+    try {
+      const res = await api.post('/requests', {
+        patient_name: requestData.patient_name,
+        blood_type: requestData.blood_type,
+        hospital_name: requestData.hospital_name,
+        district: requestData.location,
+        units_needed: Number(requestData.units_needed),
+        urgency: requestData.urgency || 'standard',
+        phone: requestData.phone,
+        notes: requestData.notes || ''
+      });
+
+      if (res.data.success) {
+        const reqId = res.data.request._id;
+        if (user) {
+          addAuditLog(user.name, user.role, 'CREATE_REQUEST', `Created blood request ${reqId} matching ${res.data.matched_count} donors`);
+        }
+        await loadAllSessionData(user);
+        return { success: true, reqId };
+      }
+      return { success: false, error: 'Failed to create request' };
+    } catch (e) {
+      console.error('Request creation error', e);
+      return { success: false, error: e.response?.data?.error || e.message || 'Failed to create request' };
+    }
+  };
+
+  const respondToRequest = async (matchId, response) => {
+    const matchObj = matches.find(m => m.id === matchId);
+    if (!matchObj) {
+      console.error('Match record not found locally', matchId);
+      return { success: false, error: 'Match record not found' };
+    }
+
+    try {
+      const res = await api.post(`/requests/${matchObj.request_id}/respond`, { response });
+      if (res.data.success) {
+        setMatches(prev => prev.map(m => m.id === matchId ? { ...m, response, responded_at: new Date().toISOString() } : m));
+        
+        if (user) {
+          addAuditLog(user.name, 'user', 'RESPOND_' + response.toUpperCase(), `Responded ${response} to request ${matchObj.request_id}`);
+        }
+
+        await fetchNotifications();
+        await fetchAllRequestsAndMatches(user);
+        return { success: true };
+      }
+      return { success: false, error: 'Failed to respond to request' };
+    } catch (e) {
+      console.error('Response error', e);
+      return { success: false, error: e.response?.data?.error || e.message };
+    }
+  };
+
+  const recordOutcome = async (matchId, outcome) => {
+    const matchObj = matches.find(m => m.id === matchId);
+    if (!matchObj) {
+      console.error('Match record not found locally', matchId);
+      return { success: false, error: 'Match record not found' };
+    }
+
+    try {
+      const res = await api.post(`/requests/${matchObj.request_id}/matches/${matchId}/outcome`, { outcome });
+      if (res.data.success) {
+        setMatches(prev => prev.map(m => m.id === matchId ? { ...m, outcome } : m));
+        
+        if (user) {
+          addAuditLog(user.name, user.role, 'RECORD_OUTCOME', `Recorded donation outcome ${outcome} for match ${matchId}`);
+        }
+
+        await loadAllSessionData(user);
+        return { success: true };
+      }
+      return { success: false, error: 'Failed to record outcome' };
+    } catch (e) {
+      console.error('Outcome recording error', e);
+      return { success: false, error: e.response?.data?.error || e.message };
+    }
+  };
+
   const suspendHospitalAccount = suspendUserAccount;
   const createHospitalAccount = () => ({ success: false, error: 'Hospital Portal deprecated' });
   const updateHospitalAccount = () => ({ success: false, error: 'Hospital Portal deprecated' });
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--beige-50)' }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider
@@ -503,7 +542,8 @@ export function AuthProvider({ children }) {
         createRequest,
         respondToRequest,
         recordOutcome,
-        // Legacy mappings
+        markNotificationAsRead,
+        markAllNotificationsAsRead,
         suspendHospitalAccount,
         createHospitalAccount,
         updateHospitalAccount

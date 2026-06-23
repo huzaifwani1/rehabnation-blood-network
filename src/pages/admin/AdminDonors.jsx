@@ -14,12 +14,14 @@ export default function AdminDonors() {
   const [minWeight, setMinWeight] = useState('');
   const [minHb, setMinHb] = useState('');
   
-  const donors = users.filter(u => u.role === 'donor');
+  const donors = users.filter(u => u.role === 'user' || u.role === 'donor');
   
   const [selectedDonor, setSelectedDonor] = useState(null);
 
   const filtered = donors.filter(d => {
-    const matchesSearch = d.name.toLowerCase().includes(search.toLowerCase()) || d.city.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (d.name || '').toLowerCase().includes(search.toLowerCase()) || 
+                          (d.city || '').toLowerCase().includes(search.toLowerCase()) ||
+                          (d.district || '').toLowerCase().includes(search.toLowerCase());
     const matchesBlood = filterBlood ? d.blood_type === filterBlood : true;
     const matchesAvail = filterAvail === 'available' ? d.is_available : filterAvail === 'unavailable' ? !d.is_available : true;
     const matchesVerify = filterVerify ? d.verification_status === filterVerify : true;

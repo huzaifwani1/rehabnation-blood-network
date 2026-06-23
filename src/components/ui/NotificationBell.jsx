@@ -6,11 +6,11 @@ import { formatDistanceToNow } from 'date-fns';
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const { user, notifications } = useAuth();
+  const { user, notifications, markNotificationAsRead, markAllNotificationsAsRead } = useAuth();
 
   const donorId = user?.donor_id || user?.id;
   
-  const myNotifications = user?.role === 'donor'
+  const myNotifications = (user?.role === 'user' || user?.role === 'donor')
     ? notifications.filter(n => n.donor_id === donorId)
     : [];
 
@@ -27,7 +27,7 @@ export default function NotificationBell() {
   }, []);
 
   const markAllRead = () => {
-    myNotifications.forEach(n => n.is_read = true);
+    markAllNotificationsAsRead();
   };
 
   const getNotifColor = (type) => {
@@ -85,7 +85,7 @@ export default function NotificationBell() {
             ) : (
               myNotifications.map(notif => (
                 <div key={notif.id} className={`notif-item ${!notif.is_read ? 'unread' : ''}`}
-                  onClick={() => notif.is_read = true}>
+                  onClick={() => !notif.is_read && markNotificationAsRead(notif.id)}>
                   <div className="notif-icon" style={{ background: getNotifColor(notif.type) }}>
                     <Droplets size={16} color={getNotifIconColor(notif.type)} />
                   </div>

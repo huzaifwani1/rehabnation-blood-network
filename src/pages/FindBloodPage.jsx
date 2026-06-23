@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Search, Phone, ShieldCheck, ShieldOff, Droplets,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { BLOOD_TYPES, ALL_DISTRICTS } from '../data/mockData';
+import api from '../services/api';
 
 function VerifiedBadge() {
   return (
@@ -52,17 +53,34 @@ function AvailablePill({ available }) {
 export default function FindBloodPage() {
   const navigate = useNavigate();
 
-  const { user, users } = useAuth();
+  const { user } = useAuth();
 
+  const [donors, setDonors] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filterBlood, setFilterBlood] = useState('');
   const [filterDistrict, setFilterDistrict] = useState('');
   const [filterAvailability, setFilterAvailability] = useState('');  // 'available' | 'unavailable' | ''
   const [filterVerification, setFilterVerification] = useState(''); // 'camp_verified' | ''
   const [searched, setSearched] = useState(false);
 
-  const donors = (users || []).filter(u =>
-    u.role === 'user' && u.status !== 'suspended' && !u.is_flagged
-  );
+  useEffect(() => {
+    const fetchDonors = async () => {
+      try {
+        const res = await api.get('/users/search');
+        // Map db _id fields to id for compatibility
+        const mapped = (res.data || []).map(u => ({
+          ...u,
+          id: u._id || u.id
+        }));
+        setDonors(mapped);
+      } catch (e) {
+        console.error('Error fetching donors for search:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDonors();
+  }, []);
 
   const filtered = donors.filter(u => {
     const matchBlood = !filterBlood || u.blood_type === filterBlood;
@@ -83,6 +101,14 @@ export default function FindBloodPage() {
     setFilterVerification('');
     setSearched(false);
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '65vh', background: 'var(--beige-50)' }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   // Blood group quick-stats (always from live data)
   const bloodGroupStats = BLOOD_TYPES.map(bt => ({

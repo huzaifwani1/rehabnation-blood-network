@@ -8,7 +8,7 @@ export function PublicFindBlood() {
   const { users } = useAuth();
   
   // Calculate aggregate donor stats safely
-  const donorList = users.filter(u => u.role === 'donor');
+  const donorList = users.filter(u => u.role === 'user' || u.role === 'donor');
   const bloodGroupsCount = donorList.reduce((acc, curr) => {
     acc[curr.blood_type] = (acc[curr.blood_type] || 0) + 1;
     return acc;
