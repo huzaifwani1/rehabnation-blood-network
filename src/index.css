@@ -962,6 +962,7 @@ p {
   width: auto;
   object-fit: contain;
   display: block;
+  mix-blend-mode: multiply;
 }
 
 .sidebar-role-pill {
@@ -1756,6 +1757,11 @@ tbody tr:last-child td {
   width: auto;
   object-fit: contain;
   display: block;
+  mix-blend-mode: multiply;
+}
+
+img[src="/logo.png"], img[src*="logo.png"] {
+  mix-blend-mode: multiply;
 }
 
 .auth-logo-name {
