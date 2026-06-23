@@ -1,39 +1,26 @@
-const { DataTypes } = require('sequelize');
+const mongoose = require('mongoose');
 
-module.exports = (sequelize) => {
-  const User = sequelize.define('User', {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
-    },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true,
-      },
-    },
-    password_hash: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    role: {
-      type: DataTypes.ENUM('donor', 'hospital', 'admin'),
-      allowNull: false,
-    },
-    is_active: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      allowNull: false,
-    },
-  }, {
-    tableName: 'users',
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-  });
+const UserSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  dob: { type: String },
+  gender: { type: String, enum: ['male', 'female', 'other'] },
+  phone: { type: String, required: true },
+  email: { type: String, lowercase: true, trim: true },
+  blood_type: { type: String, required: true },
+  district: { type: String, required: true },
+  address: { type: String },
+  weight_kg: { type: Number },
+  hemoglobin_level: { type: Number },
+  last_donation_date: { type: String, default: '' },
+  donation_count: { type: Number, default: 0 },
+  verification_status: { type: String, enum: ['unverified', 'camp_verified'], default: 'unverified' },
+  is_available: { type: Boolean, default: true },
+  password: { type: String, required: true },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  initials: { type: String },
+  status: { type: String, enum: ['approved', 'suspended'], default: 'approved' },
+  is_flagged: { type: Boolean, default: false },
+  created_at: { type: Date, default: Date.now }
+});
 
-  return User;
-};
+module.exports = mongoose.model('User', UserSchema);

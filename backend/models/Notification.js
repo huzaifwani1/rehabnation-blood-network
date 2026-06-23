@@ -1,47 +1,13 @@
-const { DataTypes } = require('sequelize');
+const mongoose = require('mongoose');
 
-module.exports = (sequelize) => {
-  const Notification = sequelize.define('Notification', {
-    id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
-      primaryKey: true,
-    },
-    recipient_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id',
-      },
-    },
-    type: {
-      type: DataTypes.ENUM('blood_request', 'match_alert', 'outcome_recorded', 'announcement'),
-      allowNull: false,
-    },
-    title: {
-      type: DataTypes.STRING(255),
-      allowNull: false,
-    },
-    body: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    is_read: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-      allowNull: false,
-    },
-    read_at: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-  }, {
-    tableName: 'notifications',
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: false, // notifications are insert-only, no updates other than read state
-  });
+const NotificationSchema = new mongoose.Schema({
+  recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  type: { type: String, enum: ['blood_request', 'outcome_recorded', 'account_verified'], required: true },
+  title: { type: String, required: true },
+  body: { type: String, required: true },
+  is_read: { type: Boolean, default: false },
+  request_id: { type: mongoose.Schema.Types.ObjectId, ref: 'BloodRequest' },
+  created_at: { type: Date, default: Date.now }
+});
 
-  return Notification;
-};
+module.exports = mongoose.model('Notification', NotificationSchema);
