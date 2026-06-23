@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Droplets, Eye, EyeOff, User, Shield } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -9,34 +9,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
-  const [role, setRole] = useState('user');
   const [error, setError] = useState('');
 
   const handleLogin = (e) => {
     e.preventDefault();
-    const result = login(email, password, role);
+    const result = login(email, password, 'user');
     if (result.success) {
-      if (role === 'user') {
-        navigate('/dashboard');
-      } else if (role === 'admin') {
-        const { hostname, port } = window.location;
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-          window.location.href = `http://admin.localhost:${port || '5174'}/`;
-        } else if (hostname.includes('rhfi.org.in')) {
-          window.location.href = 'http://admin.rhfi.org.in';
-        } else {
-          window.location.href = '/admin-panel';
-        }
-      }
+      navigate('/dashboard');
     } else {
       setError(result.error);
     }
   };
 
-  const roles = [
-    { value: 'user',  label: 'User Portal',  icon: User,   color: 'var(--red-600)' },
-    { value: 'admin', label: 'Admin Portal', icon: Shield, color: 'var(--color-warning)' },
-  ];
+  const handleForgotPassword = (e) => {
+    e.preventDefault();
+    alert('Password recovery information has been sent to your registered email/phone.');
+  };
 
   return (
     <div className="auth-page">
@@ -56,27 +44,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Role selector */}
-          <div className="role-selector" style={{ marginBottom: 'var(--space-6)', marginTop: 'var(--space-4)' }}>
-            {roles.map(r => {
-              const Icon = r.icon;
-              return (
-                <div
-                  key={r.value}
-                  className={`role-option ${role === r.value ? 'selected' : ''}`}
-                  onClick={() => { setRole(r.value); setError(''); }}
-                  id={`role-option-${r.value}`}
-                >
-                  <div className="role-option-icon" style={{ background: role === r.value ? `${r.color}18` : 'var(--zinc-100)' }}>
-                     <Icon size={18} color={role === r.value ? r.color : 'var(--zinc-400)'} />
-                  </div>
-                  <span className="role-option-label">{r.label}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          <form className="auth-form" onSubmit={handleLogin}>
+          <form className="auth-form" onSubmit={handleLogin} style={{ marginTop: 'var(--space-6)' }}>
             <div className="form-group">
               <label className="form-label">Email address</label>
               <input
@@ -91,7 +59,17 @@ export default function LoginPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Password</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label className="form-label" style={{ margin: 0 }}>Password</label>
+                <a 
+                  href="#forgot" 
+                  onClick={handleForgotPassword} 
+                  style={{ color: 'var(--red-600)', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}
+                  id="forgot-pwd-link"
+                >
+                  Forgot Password?
+                </a>
+              </div>
               <div style={{ position: 'relative' }}>
                 <input
                   id="login-password"
@@ -106,21 +84,21 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', color: 'var(--text-muted)' }}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
                 >
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            <button id="login-submit-btn" type="submit" className="btn btn-primary w-full btn-lg" style={{ marginTop: 'var(--space-4)' }}>
+            <button id="login-submit-btn" type="submit" className="btn btn-primary w-full btn-lg" style={{ marginTop: 'var(--space-6)' }}>
               Sign In
             </button>
           </form>
 
           <div className="auth-switch">
             Don't have an account?{' '}
-            <a onClick={() => navigate('/register')} style={{ cursor: 'pointer', color: 'var(--red-600)', fontWeight: 600 }}>Register here</a>
+            <a onClick={() => navigate('/register')} style={{ cursor: 'pointer', color: 'var(--red-600)', fontWeight: 600 }} id="create-account-link">Create Account</a>
           </div>
         </div>
       </div>

@@ -251,7 +251,7 @@ export default function LandingPage() {
             Join the Network
           </h2>
           <p style={{ marginBottom: 'var(--space-2)', color: 'var(--zinc-500)' }}>
-            Register as a community member or access the admin control panel.
+            Register as a community member to get started.
           </p>
         </div>
         <div className="demo-cards" style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
@@ -271,14 +271,6 @@ export default function LandingPage() {
               title: 'Member Sign In',
               sub: 'Access your dashboard and requests',
               action: () => navigate('/login'),
-            },
-            {
-              id: 'portal-admin-btn',
-              icon: <Shield size={24} color="var(--amber-700)" />,
-              iconBg: 'var(--color-warning-bg)',
-              title: 'Admin Control Panel',
-              sub: 'admin.rhfi.org.in portal entry',
-              action: () => { window.location.href = getAdminUrl(); },
             },
           ].map(card => (
             <div
@@ -416,7 +408,6 @@ export default function LandingPage() {
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--zinc-400)', cursor: 'pointer' }} onClick={() => navigate('/contact')}>Contact Us</span>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--zinc-400)', cursor: 'pointer' }} onClick={() => navigate('/find-blood')}>Find Blood</span>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--zinc-400)', cursor: 'pointer' }} onClick={() => navigate('/emergency-request')}>Emergency Feed</span>
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--zinc-400)', cursor: 'pointer' }} onClick={() => { window.location.href = getAdminUrl(); }}>Admin</span>
         </div>
       </footer>
     </div>
