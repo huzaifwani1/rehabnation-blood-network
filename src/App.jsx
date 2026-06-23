@@ -55,6 +55,7 @@ function PublicOnly({ children }) {
 
 // Public App Routes (blood.rhfi.org.in / localhost default)
 function PublicAppRoutes() {
+  const { user } = useAuth();
   return (
     <Routes>
       {/* Public Pages */}
@@ -62,7 +63,20 @@ function PublicAppRoutes() {
       <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
       <Route path="/register" element={<PublicOnly><RegisterPage /></PublicOnly>} />
       <Route path="/contact" element={<ContactPage />} />
-      <Route path="/find-blood" element={<FindBloodPage />} />
+      
+      <Route 
+        path="/find-blood" 
+        element={
+          user && user.role === 'user' ? (
+            <UserProtected><AppLayout /></UserProtected>
+          ) : (
+            <FindBloodPage />
+          )
+        }
+      >
+        <Route index element={<FindBloodPage />} />
+      </Route>
+
       <Route path="/emergency-request" element={<EmergencyFeedPage />} />
 
       {/* User Dashboard */}

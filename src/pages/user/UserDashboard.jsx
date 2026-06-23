@@ -111,122 +111,104 @@ export default function UserDashboard() {
     : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
 
       {/* Profile Summary Card */}
-      <div className="card" style={{ padding: 'var(--space-6)', background: 'linear-gradient(135deg, #fff 0%, #fff9f9 100%)' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-5)', flexWrap: 'wrap' }}>
-          <BloodBadge type={user.blood_type} size="lg" />
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-              <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>{user.name}</h2>
-              <VerifBadge status={user.verification_status} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-              {[
-                { label: 'Blood Group', value: user.blood_type || 'Not set', highlight: true },
-                { label: 'Total Donations', value: user.donation_count || 0 },
-                { label: 'Last Donation', value: lastDonation },
-                ...(dob ? [{ label: 'Date of Birth', value: dob }] : []),
-              ].map(item => (
-                <div key={item.label}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
-                  <div style={{ fontWeight: 700, color: item.highlight ? 'var(--red-600)' : 'var(--zinc-900)', marginTop: 2 }}>{item.value}</div>
+      <div className="card" style={{ padding: 'var(--space-4)', background: 'linear-gradient(135deg, #fff 0%, #fff9f9 100%)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <BloodBadge type={user.blood_type} size="lg" />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</h2>
+                <div>
+                  <VerifBadge status={user.verification_status} />
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Availability Toggle */}
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              background: user.is_available ? 'rgba(22,163,74,0.06)' : 'var(--zinc-50)',
+              border: `1px solid ${user.is_available ? 'rgba(22,163,74,0.2)' : 'var(--border-base)'}`,
+              borderRadius: 'var(--radius-lg)', padding: '6px 10px', flexShrink: 0
+            }}>
+              <button
+                id="availability-toggle-btn"
+                onClick={() => toggleAvailability(user.id)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  color: user.is_available ? 'var(--color-success)' : 'var(--zinc-400)',
+                  display: 'flex', alignItems: 'center', gap: 4
+                }}
+              >
+                {user.is_available
+                  ? <ToggleRight size={28} />
+                  : <ToggleLeft size={28} />}
+                <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>
+                  {user.is_available ? 'Available' : 'Unavailable'}
+                </span>
+              </button>
             </div>
           </div>
 
-          {/* Availability Toggle */}
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            background: user.is_available ? 'rgba(22,163,74,0.06)' : 'var(--zinc-50)',
-            border: `1px solid ${user.is_available ? 'rgba(22,163,74,0.2)' : 'var(--border-base)'}`,
-            borderRadius: 'var(--radius-xl)', padding: 'var(--space-4) var(--space-5)'
-          }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Availability
-            </div>
-            <button
-              id="availability-toggle-btn"
-              onClick={() => toggleAvailability(user.id)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                color: user.is_available ? 'var(--color-success)' : 'var(--zinc-400)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6
-              }}
-            >
-              {user.is_available
-                ? <ToggleRight size={40} />
-                : <ToggleLeft size={40} />}
-              <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>
-                {user.is_available ? 'Available' : 'Not Available'}
-              </span>
-            </button>
-            {!isEligible && user.is_available && (
-              <div style={{ fontSize: '0.7rem', color: 'var(--color-warning)', textAlign: 'center', maxWidth: 120 }}>
-                <Info size={11} style={{ marginRight: 2 }} />
-                Check eligibility criteria
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, borderTop: '1px solid var(--border-light)', paddingTop: 'var(--space-3)' }}>
+            {[
+              { label: 'Blood Group', value: user.blood_type || 'Not set', highlight: true },
+              { label: 'Total Donations', value: user.donation_count || 0 },
+              { label: 'Last Donation', value: lastDonation },
+              ...(dob ? [{ label: 'Date of Birth', value: dob }] : []),
+            ].map(item => (
+              <div key={item.label}>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: item.highlight ? 'var(--red-600)' : 'var(--zinc-900)', marginTop: 2 }}>{item.value}</div>
               </div>
-            )}
+            ))}
           </div>
+
+          {!isEligible && user.is_available && (
+            <div style={{ fontSize: '0.7rem', color: 'var(--color-warning)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Info size={12} />
+              Check cooldown & health criteria
+            </div>
+          )}
         </div>
 
         {/* Eligibility bar */}
         {!isEligible && (
           <div style={{
-            marginTop: 'var(--space-4)', padding: 'var(--space-3) var(--space-4)',
+            marginTop: 'var(--space-3)', padding: '8px 12px',
             background: 'var(--color-warning-bg)', borderRadius: 'var(--radius-md)',
-            display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', color: 'var(--color-warning)'
+            display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: '0.78rem', color: 'var(--color-warning)'
           }}>
-            <AlertTriangle size={16} />
-            You may not currently meet all donation eligibility criteria (weight ≥ 50kg, Hb ≥ 12.5 g/dL, 56-day cooldown). Update your profile to reflect current health info.
+            <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>Eligibility criteria not fully met (weight ≥ 50kg, Hb ≥ 12.5 g/dL, 56-day cooldown).</span>
           </div>
         )}
       </div>
 
-      {/* Stats Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-4)' }}>
-        {[
-          { label: 'Emergency Requests', value: receivedRequests.length, icon: <AlertTriangle size={18} color="var(--red-600)" />, color: 'var(--red-600)', bg: 'var(--red-50)' },
-          { label: 'My Blood Requests', value: myRequests.length, icon: <Droplets size={18} color="var(--color-info)" />, color: 'var(--color-info)', bg: 'var(--color-info-bg)' },
-          { label: 'Donations Made', value: user.donation_count || 0, icon: <Heart size={18} color="var(--color-success)" />, color: 'var(--color-success)', bg: 'rgba(22,163,74,0.1)' },
-          { label: 'Active Matches', value: myMatches.filter(m => m.response === 'available' && m.outcome === 'pending').length, icon: <Activity size={18} color="var(--color-warning)" />, color: 'var(--color-warning)', bg: 'var(--color-warning-bg)' },
-        ].map(stat => (
-          <div key={stat.label} className="card" style={{ padding: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {stat.icon}
-            </div>
-            <div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: stat.color, lineHeight: 1 }}>{stat.value}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{stat.label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Emergency Requests Received */}
-      <div className="card" style={{ padding: 'var(--space-5)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AlertTriangle size={18} color="var(--red-600)" />
-            Emergency Requests Received
+      <div className="card" style={{ padding: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <AlertTriangle size={16} color="var(--red-600)" />
+            Nearby Emergency Requests
             {receivedRequests.length > 0 && (
-              <span style={{ background: 'var(--red-600)', color: '#fff', borderRadius: 99, fontSize: '0.75rem', fontWeight: 700, padding: '2px 8px' }}>
+              <span style={{ background: 'var(--red-600)', color: '#fff', borderRadius: 99, fontSize: '0.7rem', fontWeight: 700, padding: '1px 6px' }}>
                 {receivedRequests.length}
               </span>
             )}
           </h3>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/emergency-request')}>
-            View Public Feed <ChevronRight size={13} />
+          <button className="btn btn-ghost btn-xs" onClick={() => navigate('/emergency-request')} style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', padding: '2px 6px', minHeight: 'unset', minWidth: 'unset' }}>
+            Feed <ChevronRight size={12} />
           </button>
         </div>
 
         {receivedRequests.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 'var(--space-8) 0', color: 'var(--text-muted)' }}>
-            <Heart size={32} style={{ opacity: 0.2, marginBottom: 8 }} />
-            <p style={{ margin: 0, fontWeight: 600 }}>No active emergency requests for your blood group</p>
-            <p style={{ margin: '4px 0 0', fontSize: '0.875rem' }}>You'll be notified when a compatible request is created</p>
+          <div style={{ textAlign: 'center', padding: 'var(--space-6) 0', color: 'var(--text-muted)' }}>
+            <Heart size={24} style={{ opacity: 0.2, marginBottom: 6 }} />
+            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600 }}>No matching emergency requests active</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
@@ -236,59 +218,54 @@ export default function UserDashboard() {
               return (
                 <div key={match.id} style={{
                   border: `1px solid ${myResponse === 'available' ? 'rgba(22,163,74,0.2)' : 'var(--border-base)'}`,
-                  borderRadius: 'var(--radius-lg)',
-                  padding: 'var(--space-4)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: 'var(--space-3)',
                   background: myResponse === 'available' ? 'rgba(22,163,74,0.03)' : '#fff'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-                    <div style={{
-                      width: 44, height: 44, borderRadius: '50%',
-                      background: 'var(--red-50)', border: '2px solid var(--red-100)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 900, fontSize: '0.95rem', color: 'var(--red-600)', flexShrink: 0
-                    }}>
-                      {req.blood_type}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 180 }}>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <span style={{
+                          background: 'var(--red-50)', color: 'var(--red-600)',
+                          fontWeight: 800, fontSize: '0.85rem', padding: '2px 8px', borderRadius: '4px'
+                        }}>{req.blood_type}</span>
                         <UrgencyBadge level={req.urgency} />
-                        <TimeAgo dateStr={req.created_at} />
                       </div>
-                      <div style={{ fontWeight: 700, color: 'var(--zinc-900)' }}>{req.blood_type} blood needed — {req.patient_name}</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                        🏥 {req.hospital_name || 'Unknown'} · 📍 {req.location || 'Unknown'}
-                      </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        Units needed: {(req.units_needed || 0) - (req.units_fulfilled || 0)} of {req.units_needed}
-                      </div>
-
-                      {/* Contact info (only if accepted) */}
-                      {myResponse === 'available' && (
-                        <div style={{
-                          marginTop: 'var(--space-3)', padding: 'var(--space-3)',
-                          background: 'rgba(22,163,74,0.08)', borderRadius: 'var(--radius-md)',
-                          display: 'flex', flexWrap: 'wrap', gap: 12
-                        }}>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-success)', marginBottom: 4, width: '100%' }}>
-                            <CheckCircle size={13} style={{ marginRight: 4 }} />
-                            Requester Contact Details
-                          </div>
-                          {req.phone && (
-                            <a href={`tel:${req.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.85rem', color: 'var(--color-success)', fontWeight: 600, textDecoration: 'none' }}>
-                              <Phone size={13} /> {req.phone}
-                            </a>
-                          )}
-                          {requester?.email && (
-                            <a href={`mailto:${requester.email}`} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.85rem', color: 'var(--color-success)', fontWeight: 600, textDecoration: 'none' }}>
-                              <Mail size={13} /> {requester.email}
-                            </a>
-                          )}
-                        </div>
-                      )}
+                      <TimeAgo dateStr={req.created_at} />
                     </div>
+
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--zinc-900)' }}>
+                      Patient: {req.patient_name}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      🏥 {req.hospital_name} · 📍 {req.location}
+                    </div>
+
+                    {/* Contact info (only if accepted) */}
+                    {myResponse === 'available' && (
+                      <div style={{
+                        padding: 'var(--space-2)',
+                        background: 'rgba(22,163,74,0.08)', borderRadius: 'var(--radius-sm)',
+                        display: 'flex', flexDirection: 'column', gap: 4
+                      }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <CheckCircle size={12} /> Contact Details
+                        </div>
+                        {req.phone && (
+                          <a href={`tel:${req.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: 'var(--color-success)', fontWeight: 600, textDecoration: 'none' }}>
+                            <Phone size={12} /> {req.phone}
+                          </a>
+                        )}
+                        {requester?.email && (
+                          <a href={`mailto:${requester.email}`} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: 'var(--color-success)', fontWeight: 600, textDecoration: 'none' }}>
+                            <Mail size={12} /> {requester.email}
+                          </a>
+                        )}
+                      </div>
+                    )}
 
                     {/* Response buttons */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                       {myResponse === 'pending' ? (
                         <>
                           <button
@@ -296,27 +273,27 @@ export default function UserDashboard() {
                             className="btn btn-primary btn-sm"
                             onClick={() => handleRespond(match.id, 'available')}
                             disabled={responding === match.id + 'available'}
-                            style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+                            style={{ flex: 1, fontSize: '0.8rem', padding: '6px 12px', minHeight: '32px' }}
                           >
-                            <CheckCircle size={13} /> I'm Available
+                            I'm Available
                           </button>
                           <button
                             id={`respond-unavailable-${match.id}`}
                             className="btn btn-secondary btn-sm"
                             onClick={() => handleRespond(match.id, 'unavailable')}
                             disabled={responding === match.id + 'unavailable'}
-                            style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+                            style={{ flex: 1, fontSize: '0.8rem', padding: '6px 12px', minHeight: '32px' }}
                           >
-                            <XCircle size={13} /> Not Available
+                            Decline
                           </button>
                         </>
                       ) : myResponse === 'available' ? (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', color: 'var(--color-success)', fontWeight: 700 }}>
-                          <CheckCircle size={14} /> Accepted
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: 'var(--color-success)', fontWeight: 700 }}>
+                          <CheckCircle size={12} /> Response Sent: Available
                         </span>
                       ) : (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.8rem', color: 'var(--zinc-400)', fontWeight: 700 }}>
-                          <XCircle size={14} /> Declined
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: 'var(--zinc-400)', fontWeight: 700 }}>
+                          <XCircle size={12} /> Response Sent: Declined
                         </span>
                       )}
                     </div>
@@ -329,74 +306,72 @@ export default function UserDashboard() {
       </div>
 
       {/* My Blood Requests */}
-      <div className="card" style={{ padding: 'var(--space-5)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Droplets size={18} color="var(--color-info)" />
-            My Blood Requests
+      <div className="card" style={{ padding: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Droplets size={16} color="var(--color-info)" />
+            My Requests
           </h3>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/my-requests')}>
-              View All <ChevronRight size={13} />
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className="btn btn-ghost btn-xs" onClick={() => navigate('/my-requests')} style={{ fontSize: '0.75rem', padding: '2px 6px', minHeight: 'unset', minWidth: 'unset' }}>
+              View All
             </button>
             <button
               id="create-new-request-btn"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-xs"
               onClick={() => navigate('/request-blood')}
-              style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', padding: '4px 8px', minHeight: 'unset', minWidth: 'unset' }}
             >
-              <Plus size={14} /> New Request
+              <Plus size={12} /> New
             </button>
           </div>
         </div>
 
         {myRequests.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 'var(--space-8) 0', color: 'var(--text-muted)' }}>
-            <Droplets size={32} style={{ opacity: 0.2, marginBottom: 8 }} />
-            <p style={{ margin: 0, fontWeight: 600 }}>No blood requests yet</p>
-            <p style={{ margin: '4px 0 0', fontSize: '0.875rem' }}>Create a request to find compatible donors</p>
-            <button className="btn btn-primary btn-sm" style={{ marginTop: 12 }} onClick={() => navigate('/request-blood')}>
-              <Plus size={13} /> Create First Request
+          <div style={{ textAlign: 'center', padding: 'var(--space-6) 0', color: 'var(--text-muted)' }}>
+            <Droplets size={24} style={{ opacity: 0.2, marginBottom: 6 }} />
+            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600 }}>No requests created yet</p>
+            <button className="btn btn-primary btn-sm" style={{ marginTop: 8, fontSize: '0.8rem', minHeight: '32px' }} onClick={() => navigate('/request-blood')}>
+              Create Request
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             {myRequests.slice(0, 3).map(req => {
               const reqMatches = matches.filter(m => m.request_id === req.id && m.response === 'available');
               const cfg = URGENCY_CONFIG[req.urgency] || URGENCY_CONFIG.standard;
               return (
                 <div key={req.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 'var(--space-4)',
-                  padding: 'var(--space-4)', borderRadius: 'var(--radius-lg)',
-                  border: '1px solid var(--border-subtle)', flexWrap: 'wrap'
+                  display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
+                  padding: '10px var(--space-3)', borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-subtle)', background: '#fff'
                 }}>
                   <div style={{
-                    width: 40, height: 40, borderRadius: '50%',
+                    width: 32, height: 32, borderRadius: '50%',
                     background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 900, fontSize: '0.9rem', color: cfg.color, flexShrink: 0
+                    fontWeight: 900, fontSize: '0.8rem', color: cfg.color, flexShrink: 0
                   }}>
                     {req.blood_type}
                   </div>
-                  <div style={{ flex: 1, minWidth: 140 }}>
-                    <div style={{ fontWeight: 600, color: 'var(--zinc-900)', fontSize: '0.9rem' }}>
-                      {req.patient_name} — {req.blood_type}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--zinc-900)', fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {req.patient_name}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <UrgencyBadge level={req.urgency} />
-                      <TimeAgo dateStr={req.created_at} />
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <span>{req.location}</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--color-success)', fontSize: '1.1rem' }}>{reqMatches.length}</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>donors</div>
+                      <div style={{ fontWeight: 700, color: 'var(--color-success)', fontSize: '0.9rem', lineHeight: 1.1 }}>{reqMatches.length}</div>
+                      <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>avail</div>
                     </div>
                     <span style={{
-                      padding: '3px 10px', borderRadius: 99, fontSize: '0.75rem', fontWeight: 700,
+                      padding: '2px 6px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 700,
                       background: req.status === 'open' ? 'rgba(22,163,74,0.1)' : req.status === 'fulfilled' ? 'var(--color-info-bg)' : 'var(--zinc-100)',
                       color: req.status === 'open' ? 'var(--color-success)' : req.status === 'fulfilled' ? 'var(--color-info)' : 'var(--zinc-400)'
                     }}>
-                      {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                      {req.status}
                     </span>
                   </div>
                 </div>

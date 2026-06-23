@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   User, Phone, Mail, MapPin, Calendar, Droplets, Activity,
   ShieldCheck, ShieldOff, Edit3, Save, X, AlertTriangle,
-  CheckCircle, Clock
+  CheckCircle, Clock, LogOut
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { BLOOD_TYPES, ALL_DISTRICTS } from '../../data/mockData';
@@ -27,8 +27,14 @@ function VerifBadge({ status }) {
 }
 
 export default function UserProfile() {
-  const { user, updateUserProfile } = useAuth();
+  const navigate = useNavigate();
+  const { user, updateUserProfile, logout } = useAuth();
   const [editing, setEditing] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
   const [form, setForm] = useState({ ...user });
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -122,9 +128,14 @@ export default function UserProfile() {
               </button>
             </>
           ) : (
-            <button className="btn btn-secondary btn-sm" id="profile-edit-btn" onClick={() => setEditing(true)}>
-              <Edit3 size={14} /> Edit Profile
-            </button>
+            <>
+              <button className="btn btn-secondary btn-sm" id="profile-edit-btn" onClick={() => setEditing(true)}>
+                <Edit3 size={14} /> Edit Profile
+              </button>
+              <button className="btn btn-outline btn-sm text-red" onClick={handleLogout} style={{ borderColor: 'var(--red-200)', color: 'var(--red-600)', display: 'flex', alignItems: 'center', gap: 5 }} id="profile-logout-btn">
+                <LogOut size={14} /> Logout
+              </button>
+            </>
           )}
         </div>
       </div>

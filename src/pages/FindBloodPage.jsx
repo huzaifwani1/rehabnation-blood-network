@@ -51,7 +51,8 @@ function AvailablePill({ available }) {
 
 export default function FindBloodPage() {
   const navigate = useNavigate();
-  const { users } = useAuth();
+
+  const { user, users } = useAuth();
 
   const [filterBlood, setFilterBlood] = useState('');
   const [filterDistrict, setFilterDistrict] = useState('');
@@ -91,6 +92,155 @@ export default function FindBloodPage() {
 
   const hasFilters = filterBlood || filterDistrict || filterAvailability || filterVerification;
 
+  // Render for authenticated users (inside dashboard layout)
+  if (user) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        {/* Quick Stats */}
+        <div className="card" style={{ padding: 'var(--space-4)' }}>
+          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--zinc-700)', marginBottom: 'var(--space-3)' }}>
+            Quick availability stats:
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {bloodGroupStats.map(({ type, count }) => (
+              <button
+                key={type}
+                onClick={() => { setFilterBlood(type === filterBlood ? '' : type); setSearched(true); }}
+                style={{
+                  padding: '6px 10px', borderRadius: 'var(--radius-md)',
+                  border: filterBlood === type ? '2px solid var(--red-600)' : '1px solid var(--border-base)',
+                  background: filterBlood === type ? 'var(--red-600)' : '#fff',
+                  color: filterBlood === type ? '#fff' : 'var(--zinc-700)',
+                  fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
+                  transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 4,
+                  minWidth: '50px', justifyContent: 'center'
+                }}
+              >
+                <span>{type}</span>
+                <span style={{ fontSize: '0.65rem', opacity: 0.8 }}>
+                  ({count})
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="card" style={{ padding: 'var(--space-4)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-3)' }}>
+            {/* Blood Group */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 4 }}>Blood Group</label>
+              <select
+                className="form-select"
+                value={filterBlood}
+                onChange={e => setFilterBlood(e.target.value)}
+                style={{ fontSize: '0.85rem', height: '36px', padding: '0 8px' }}
+                id="filter-blood-group"
+              >
+                <option value="">All Groups</option>
+                {BLOOD_TYPES.map(bt => <option key={bt} value={bt}>{bt}</option>)}
+              </select>
+            </div>
+
+            {/* District */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 4 }}>District (J&K)</label>
+              <select
+                className="form-select"
+                value={filterDistrict}
+                onChange={e => setFilterDistrict(e.target.value)}
+                style={{ fontSize: '0.85rem', height: '36px', padding: '0 8px' }}
+                id="filter-district"
+              >
+                <option value="">All Districts</option>
+                {ALL_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+
+            {/* Availability */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 4 }}>Availability</label>
+              <select
+                className="form-select"
+                value={filterAvailability}
+                onChange={e => setFilterAvailability(e.target.value)}
+                style={{ fontSize: '0.85rem', height: '36px', padding: '0 8px' }}
+                id="filter-availability"
+              >
+                <option value="">All Donors</option>
+                <option value="available">Available</option>
+                <option value="unavailable">Unavailable</option>
+              </select>
+            </div>
+
+            {/* Verification */}
+            <div>
+              <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 4 }}>Verification</label>
+              <select
+                className="form-select"
+                value={filterVerification}
+                onChange={e => setFilterVerification(e.target.value)}
+                style={{ fontSize: '0.85rem', height: '36px', padding: '0 8px' }}
+                id="filter-verification"
+              >
+                <option value="">All Members</option>
+                <option value="camp_verified">Verified Only</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 'var(--space-4)' }}>
+            <button
+              id="find-blood-search-btn"
+              className="btn btn-primary"
+              onClick={handleSearch}
+              style={{ flex: 1, height: '38px', fontSize: '0.85rem' }}
+            >
+              <Search size={14} /> Search Donors
+            </button>
+            {hasFilters && (
+              <button className="btn btn-secondary" onClick={handleClear} style={{ height: '38px', fontSize: '0.85rem' }}>Clear</button>
+            )}
+          </div>
+        </div>
+
+        {/* Results count */}
+        {searched && (
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', paddingLeft: 'var(--space-2)' }}>
+            <strong style={{ color: 'var(--zinc-900)' }}>{filtered.length}</strong> donor{filtered.length !== 1 ? 's' : ''} found
+          </div>
+        )}
+
+        {/* Results */}
+        {!searched ? (
+          <div style={{ textAlign: 'center', padding: 'var(--space-10) 0', color: 'var(--text-muted)' }}>
+            <Users size={36} style={{ opacity: 0.2, marginBottom: 8 }} />
+            <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>Select filters and press Search to find donors</p>
+          </div>
+        ) : displayList.length === 0 ? (
+          <div className="card" style={{ textAlign: 'center', padding: 'var(--space-10) 0', color: 'var(--text-muted)' }}>
+            <Droplets size={36} style={{ opacity: 0.2, marginBottom: 8 }} />
+            <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>No donors match your search criteria</p>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: 'var(--space-4)',
+            marginBottom: 'var(--space-6)'
+          }}>
+            {displayList.map(donor => (
+              <DonorCard key={donor.id} donor={donor} navigate={navigate} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Render for guests (public landing page)
   return (
     <div className="landing" style={{ minHeight: '100vh', background: '#fff' }}>
       {/* Navbar */}
@@ -161,7 +311,7 @@ export default function FindBloodPage() {
           background: '#fff', border: '1px solid var(--border-base)',
           borderRadius: 'var(--radius-xl)', padding: 'var(--space-5)',
           boxShadow: 'var(--shadow-sm)',
-          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto',
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: 'var(--space-4)', alignItems: 'end'
         }}>
           {/* Blood Group */}
@@ -285,7 +435,7 @@ export default function FindBloodPage() {
             marginBottom: 'var(--space-12)'
           }}>
             {displayList.map(donor => (
-              <DonorCard key={donor.id} donor={donor} />
+              <DonorCard key={donor.id} donor={donor} navigate={navigate} />
             ))}
           </div>
         )}
@@ -328,14 +478,14 @@ export default function FindBloodPage() {
   );
 }
 
-function DonorCard({ donor }) {
+function DonorCard({ donor, navigate }) {
   const lastDonation = donor.last_donation_date
     ? new Date(donor.last_donation_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     : 'Not recorded';
 
   return (
     <div className="card" style={{
-      padding: 'var(--space-5)',
+      padding: 'var(--space-4)',
       transition: 'box-shadow 0.2s, transform 0.2s',
       cursor: 'default',
       border: donor.is_available ? '1px solid rgba(22,163,74,0.15)' : '1px solid var(--border-subtle)'
@@ -344,13 +494,13 @@ function DonorCard({ donor }) {
       onMouseLeave={e => { e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
         <BloodBadge type={donor.blood_type} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--zinc-900)', marginBottom: 4 }}>
+          <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--zinc-900)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {donor.name}
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             <AvailablePill available={donor.is_available} />
             {donor.verification_status === 'camp_verified' && <VerifiedBadge />}
           </div>
@@ -358,41 +508,41 @@ function DonorCard({ donor }) {
       </div>
 
       {/* Details */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 'var(--space-5)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 'var(--space-4)' }}>
         {donor.district && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            <MapPin size={14} color="var(--red-600)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            <MapPin size={12} color="var(--red-600)" />
             <span>{donor.district}</span>
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          <Calendar size={14} color="var(--zinc-400)" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          <Calendar size={12} color="var(--zinc-400)" />
           <span>Last donation: {lastDonation}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          <Droplets size={14} color="var(--zinc-400)" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          <Droplets size={12} color="var(--zinc-400)" />
           <span>{donor.donation_count || 0} total donation{(donor.donation_count || 0) !== 1 ? 's' : ''}</span>
         </div>
       </div>
 
-      {/* Action */}
-      {donor.is_available && donor.phone ? (
-        <a
-          href={`tel:${donor.phone}`}
+      {/* Action — Enforce donor privacy */}
+      {donor.is_available ? (
+        <button
           className="btn btn-primary w-full"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, textDecoration: 'none' }}
-          id={`call-donor-${donor.id}`}
+          onClick={() => navigate('/request-blood')}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: '0.85rem', minHeight: '36px' }}
+          id={`request-donor-${donor.id}`}
         >
-          <Phone size={15} />
-          Call Donor — {donor.phone}
-        </a>
+          <Droplets size={14} />
+          Request Blood ({donor.blood_type})
+        </button>
       ) : (
         <div style={{
-          padding: 'var(--space-3)',
+          padding: 'var(--space-2)',
           background: 'var(--zinc-50)', borderRadius: 'var(--radius-md)',
-          fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center'
+          fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center'
         }}>
-          <Clock size={13} style={{ marginRight: 4 }} />
+          <Clock size={12} style={{ marginRight: 4 }} />
           Currently not available to donate
         </div>
       )}
