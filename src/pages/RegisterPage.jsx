@@ -23,6 +23,7 @@ export default function RegisterPage() {
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -45,6 +46,8 @@ export default function RegisterPage() {
       donation_count: form.donation_count,
     });
     
+    setLoading(true);
+    setError('');
     try {
       const result = await registerUser({
         email: form.email,
@@ -65,6 +68,7 @@ export default function RegisterPage() {
       });
 
       console.log('Result received from registerUser:', result);
+      setLoading(false);
 
       if (result.success) {
         console.log('Registration succeeded! Setting submitted to true.');
@@ -79,6 +83,7 @@ export default function RegisterPage() {
       }
     } catch (e) {
       console.error('CRITICAL: Exception thrown in handleDonorSubmit:', e);
+      setLoading(false);
       setError(e.message || 'An unexpected error occurred');
       setStep(0);
     }
@@ -303,10 +308,11 @@ export default function RegisterPage() {
                 <button
                   id="reg-submit-btn"
                   className="btn btn-primary flex-1"
-                  disabled={!form.consent}
+                  disabled={!form.consent || loading}
                   onClick={handleDonorSubmit}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  Complete Registration
+                  {loading ? <div className="spinner" style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', margin: 0 }} /> : 'Complete Registration'}
                 </button>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CheckCircle2, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 
 // Layout
 import AppLayout from './components/layout/AppLayout';
@@ -12,6 +13,8 @@ import RegisterPage     from './pages/RegisterPage';
 import ContactPage      from './pages/ContactPage';
 import FindBloodPage    from './pages/FindBloodPage';
 import EmergencyFeedPage from './pages/EmergencyFeedPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsPage         from './pages/TermsPage';
 
 // User pages
 import UserDashboard    from './pages/user/UserDashboard';
@@ -53,6 +56,74 @@ function PublicOnly({ children }) {
   return children;
 }
 
+// Global ToastNotification component
+function ToastNotification() {
+  const { toast } = useAuth();
+  if (!toast) return null;
+
+  const icons = {
+    success: <CheckCircle2 size={16} color="var(--green-700)" />,
+    error: <AlertCircle size={16} color="var(--red-700)" />,
+    warning: <AlertTriangle size={16} color="var(--amber-700)" />,
+    info: <Info size={16} color="var(--blue-700)" />
+  };
+
+  const bgStyles = {
+    success: 'rgba(22, 163, 74, 0.08)',
+    error: 'rgba(220, 38, 38, 0.08)',
+    warning: 'rgba(217, 119, 6, 0.08)',
+    info: 'rgba(37, 99, 235, 0.08)'
+  };
+
+  const borderStyles = {
+    success: '1px solid rgba(22, 163, 74, 0.2)',
+    error: '1px solid rgba(220, 38, 38, 0.2)',
+    warning: '1px solid rgba(217, 119, 6, 0.2)',
+    info: '1px solid rgba(37, 99, 235, 0.2)'
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 'calc(24px + env(safe-area-inset-top))',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 9999,
+        background: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(12px)',
+        border: borderStyles[toast.type] || '1px solid var(--border-base)',
+        padding: '12px 20px',
+        borderRadius: 'var(--radius-xl)',
+        boxShadow: 'var(--shadow-xl)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        fontWeight: 600,
+        color: 'var(--zinc-900)',
+        fontSize: '0.875rem',
+        animation: 'slideUp 0.3s ease-out',
+        maxWidth: '90vw',
+        width: 'max-content'
+      }}
+    >
+      <div style={{
+        width: 28,
+        height: 28,
+        borderRadius: '50%',
+        background: bgStyles[toast.type] || 'var(--zinc-100)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0
+      }}>
+        {icons[toast.type] || <Info size={16} />}
+      </div>
+      <div style={{ flexGrow: 1, paddingRight: 4 }}>{toast.message}</div>
+    </div>
+  );
+}
+
 // Public App Routes (blood.rhfi.org.in / localhost default)
 function PublicAppRoutes() {
   const { user } = useAuth();
@@ -63,6 +134,8 @@ function PublicAppRoutes() {
       <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
       <Route path="/register" element={<PublicOnly><RegisterPage /></PublicOnly>} />
       <Route path="/contact" element={<ContactPage />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
       
       <Route 
         path="/find-blood" 
@@ -132,6 +205,7 @@ export default function App() {
     return (
       <BrowserRouter basename={isLocalAdmin ? '/admin-panel' : '/'}>
         <AuthProvider>
+          <ToastNotification />
           <AdminAppRoutes />
         </AuthProvider>
       </BrowserRouter>
@@ -141,6 +215,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ToastNotification />
         <PublicAppRoutes />
       </AuthProvider>
     </BrowserRouter>

@@ -38,6 +38,7 @@ export default function UserProfile() {
   const [form, setForm] = useState({ ...user });
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   if (!user) return null;
 
@@ -48,6 +49,7 @@ export default function UserProfile() {
     if (!form.name?.trim()) return setError('Name is required');
     if (!form.phone?.trim()) return setError('Phone number is required');
 
+    setLoading(true);
     const result = await updateUserProfile(user.id, {
       name: form.name,
       phone: form.phone,
@@ -65,6 +67,7 @@ export default function UserProfile() {
       last_donation_date: form.last_donation_date,
       donation_count: form.donation_count,
     });
+    setLoading(false);
 
     if (result.success) {
       setSaved(true);
@@ -120,11 +123,11 @@ export default function UserProfile() {
         <div style={{ display: 'flex', gap: 8 }}>
           {editing ? (
             <>
-              <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
+              <button className="btn btn-secondary btn-sm" onClick={handleCancel} disabled={loading}>
                 <X size={14} /> Cancel
               </button>
-              <button className="btn btn-primary btn-sm" id="profile-save-btn" onClick={handleSave}>
-                <Save size={14} /> Save Changes
+              <button className="btn btn-primary btn-sm" id="profile-save-btn" onClick={handleSave} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {loading ? <div className="spinner" style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', margin: 0 }} /> : <><Save size={14} /> Save Changes</>}
               </button>
             </>
           ) : (

@@ -1,7 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
-const { authenticateJWT } = require('../middleware/auth');
+const { authenticateJWT, authorizeRoles } = require('../middleware/auth');
+
+// GET /api/notifications/admin-stats
+router.get('/admin-stats', authenticateJWT, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const total = await Notification.countDocuments({});
+    const read = await Notification.countDocuments({ is_read: true });
+    const unread = await Notification.countDocuments({ is_read: false });
+    
+    const byType = await Notification.aggregate([
+      { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]);
+
+    const statsByType = {};
+    byType.forEach(item => {
+      statsByType[item._id || 'general'] = item.count;
+    });
+
+    return res.json({
+      total,
+      read,
+      unread,
+      statsByType
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 // GET /api/notifications
 router.get('/', authenticateJWT, async (req, res) => {

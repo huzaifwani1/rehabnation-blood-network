@@ -47,6 +47,13 @@ api.interceptors.response.use(
     if (error.response) {
       console.error(`Status code: ${error.response.status}`);
       console.error('Error details:', JSON.stringify(error.response.data));
+      
+      // Dispatch global event on session expiration
+      if (error.response.status === 401) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('rehabnation:unauthorized'));
+        }
+      }
     } else {
       console.error('No response received. Message:', error.message);
     }

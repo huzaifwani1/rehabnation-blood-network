@@ -10,10 +10,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     const result = await login(email, password, 'user');
+    setLoading(false);
     if (result.success) {
       navigate('/dashboard');
     } else {
@@ -55,6 +59,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError(''); }}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -80,19 +85,27 @@ export default function LoginPage() {
                   onChange={e => { setPassword(e.target.value); setError(''); }}
                   style={{ paddingRight: 44 }}
                   required
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
                   style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  disabled={loading}
                 >
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            <button id="login-submit-btn" type="submit" className="btn btn-primary w-full btn-lg" style={{ marginTop: 'var(--space-6)' }}>
-              Sign In
+            <button 
+              id="login-submit-btn" 
+              type="submit" 
+              className="btn btn-primary w-full btn-lg" 
+              style={{ marginTop: 'var(--space-6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+              disabled={loading}
+            >
+              {loading ? <div className="spinner" style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', margin: 0 }} /> : 'Sign In'}
             </button>
           </form>
 

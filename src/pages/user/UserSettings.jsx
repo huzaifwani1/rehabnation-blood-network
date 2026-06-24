@@ -4,7 +4,7 @@ import { Settings, Lock, Eye, EyeOff, Save, AlertTriangle, CheckCircle, LogOut, 
 import { useAuth } from '../../context/AuthContext';
 
 export default function UserSettings() {
-  const { user, logout, deleteUserAccount } = useAuth();
+  const { user, logout, deleteSelfAccount, showToast } = useAuth();
   const navigate = useNavigate();
   const [showPw, setShowPw] = useState(false);
   const [pw, setPw] = useState({ current: '', new: '', confirm: '' });
@@ -30,9 +30,14 @@ export default function UserSettings() {
     navigate('/');
   };
 
-  const handleDeleteAccount = () => {
-    deleteUserAccount(user.id);
-    navigate('/');
+  const handleDeleteAccount = async () => {
+    const result = await deleteSelfAccount();
+    if (result.success) {
+      showToast('Account deleted successfully.', 'success');
+      navigate('/');
+    } else {
+      showToast(result.error || 'Failed to delete account.', 'error');
+    }
   };
 
   return (
@@ -134,20 +139,42 @@ export default function UserSettings() {
               <div style={{ fontWeight: 700, color: 'var(--red-600)', marginBottom: 2 }}>Delete Account</div>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Permanently delete your account and all data</div>
             </div>
-            {confirmDelete ? (
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => setConfirmDelete(false)}>Cancel</button>
-                <button id="settings-delete-confirm-btn" className="btn btn-sm" style={{ background: 'var(--red-600)', color: '#fff' }} onClick={handleDeleteAccount}>
-                  <Trash2 size={13} /> Confirm Delete
-                </button>
-              </div>
-            ) : (
-              <button id="settings-delete-btn" className="btn btn-sm" style={{ background: 'transparent', color: 'var(--red-600)', border: '1px solid rgba(220,38,38,0.3)' }} onClick={() => setConfirmDelete(true)}>
-                <Trash2 size={13} /> Delete Account
-              </button>
-            )}
+            <button id="settings-delete-btn" className="btn btn-sm" style={{ background: 'transparent', color: 'var(--red-600)', border: '1px solid rgba(220,38,38,0.3)' }} onClick={() => setConfirmDelete(true)}>
+              <Trash2 size={13} /> Delete Account
+            </button>
           </div>
         </div>
+      </div>
+
+      {/* Account Deletion Confirmation Modal */}
+      {confirmDelete && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', zIndex: 1000, padding: 'var(--space-4)'
+        }}>
+          <div className="card animate-slideUp" style={{ maxWidth: 440, width: '100%', padding: 'var(--space-6)', background: '#fff', boxShadow: 'var(--shadow-xl)' }}>
+            <h3 style={{ color: 'var(--red-600)', display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 var(--space-3)' }}>
+              <AlertTriangle size={20} /> Delete Account?
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 'var(--space-5)' }}>
+              <strong>This action cannot be undone.</strong> Your user profile, emergency blood requests, compatibility matches, and alerts will be permanently removed from our production servers.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button className="btn btn-secondary" onClick={() => setConfirmDelete(false)}>Cancel</button>
+              <button id="settings-delete-confirm-btn" className="btn" style={{ background: 'var(--red-600)', color: '#fff' }} onClick={handleDeleteAccount}>
+                Delete Permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Policy Links */}
+      <div style={{ textAlign: 'center', marginTop: 'var(--space-8)', fontSize: '0.825rem', display: 'flex', justifyContent: 'center', gap: 16 }}>
+        <a href="/privacy" onClick={e => { e.preventDefault(); navigate('/privacy'); }} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Privacy Policy</a>
+        <span style={{ color: 'var(--border-base)' }}>•</span>
+        <a href="/terms" onClick={e => { e.preventDefault(); navigate('/terms'); }} style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Terms & Conditions</a>
       </div>
     </div>
   );

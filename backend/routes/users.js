@@ -55,6 +55,73 @@ router.put('/me', authenticateJWT, async (req, res) => {
   }
 });
 
+// DELETE /api/users/me (Delete self account & cascade clean associated Mongoose documents)
+router.delete('/me', authenticateJWT, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 1. Delete user document
+    const deletedUser = await User.findByIdAndDelete(userId);
+    if (!deletedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // 2. Cascade delete all owned blood requests
+    const userRequests = await require('../models/BloodRequest').find({ requester: userId });
+    const requestIds = userRequests.map(r => r._id);
+
+    // Delete matches linked to those requests
+    await require('../models/RequestDonorMatch').deleteMany({ request: { $in: requestIds } });
+
+    // Delete notifications linked to those requests
+    await require('../models/Notification').deleteMany({ request_id: { $in: requestIds } });
+
+    // Delete donation history linked to those requests
+    await require('../models/DonationHistory').deleteMany({ request: { $in: requestIds } });
+
+    // Delete the blood requests themselves
+    await require('../models/BloodRequest').deleteMany({ requester: userId });
+
+    // 3. Cascade delete all matches where user was the donor
+    await require('../models/RequestDonorMatch').deleteMany({ donor: userId });
+
+    // 4. Cascade delete all notifications sent to this user
+    await require('../models/Notification').deleteMany({ recipient: userId });
+
+    // 5. Cascade delete all donation history where user was the donor
+    await require('../models/DonationHistory').deleteMany({ donor: userId });
+
+    return res.json({ success: true, message: 'Account and all associated records deleted successfully.' });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/users/me/fcm-token (Register/Save FCM token for push notifications)
+router.post('/me/fcm-token', authenticateJWT, async (req, res) => {
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ error: 'Token is required' });
+  }
+
+  try {
+    const userObj = await User.findById(req.user.id);
+    if (!userObj) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Add token if it does not already exist
+    if (!userObj.fcm_tokens.includes(token)) {
+      userObj.fcm_tokens.push(token);
+      await userObj.save();
+    }
+
+    return res.json({ success: true, message: 'FCM Token registered successfully' });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/users/search (Public/Protected Donor Search)
 router.get('/search', async (req, res) => {
   const { blood_type, district, is_available, verification_status } = req.query;

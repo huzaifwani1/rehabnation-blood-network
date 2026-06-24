@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Droplets, Activity, Heart, AlertTriangle,
-  TrendingUp, Clock, CheckCircle, ChevronRight, ShieldCheck
+  TrendingUp, Clock, CheckCircle, ChevronRight, ShieldCheck,
+  Bell, Mail, Eye
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 const URGENCY_CONFIG = {
   critical: { label: 'Critical', color: 'var(--red-600)', bg: 'var(--red-50)' },
@@ -25,6 +27,22 @@ function TimeAgo({ dateStr }) {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { users, requests, matches } = useAuth();
+  const [notifStats, setNotifStats] = useState(null);
+  const [notifLoading, setNotifLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNotifStats = async () => {
+      try {
+        const res = await api.get('/notifications/admin-stats');
+        setNotifStats(res.data);
+      } catch (e) {
+        console.error('Error fetching notification statistics:', e);
+      } finally {
+        setNotifLoading(false);
+      }
+    };
+    fetchNotifStats();
+  }, []);
 
   const regularUsers = users.filter(u => u.role === 'user');
   const openRequests = requests.filter(r => r.status === 'open');
@@ -127,6 +145,64 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
+      </div>
+      {/* Notification Delivery Statistics */}
+      <div className="card" style={{ padding: 'var(--space-5)' }}>
+        <h3 style={{ margin: '0 0 var(--space-4)' }}>Notification Delivery Statistics</h3>
+        {notifLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-6) 0' }}>
+            <div className="spinner" style={{ width: 24, height: 24 }} />
+          </div>
+        ) : !notifStats ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Failed to load notification statistics.</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-4)' }}>
+            {[
+              {
+                label: 'Total Dispatched',
+                value: notifStats.total,
+                icon: <Bell size={18} color="var(--red-600)" />,
+                bg: 'var(--red-50)'
+              },
+              {
+                label: 'Read Rate',
+                value: `${notifStats.total > 0 ? Math.round((notifStats.read / notifStats.total) * 100) : 0}%`,
+                icon: <Eye size={18} color="var(--color-success)" />,
+                bg: 'rgba(22, 163, 74, 0.08)'
+              },
+              {
+                label: 'Emergency Alerts',
+                value: notifStats.statsByType?.blood_request || 0,
+                icon: <Droplets size={18} color="var(--color-warning)" />,
+                bg: 'var(--color-warning-bg)'
+              },
+              {
+                label: 'System Updates',
+                value: notifStats.statsByType?.outcome_recorded || 0,
+                icon: <CheckCircle size={18} color="var(--color-info)" />,
+                bg: 'var(--color-info-bg)'
+              }
+            ].map(item => (
+              <div key={item.label} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--space-4)',
+                borderRadius: 'var(--radius-lg)', background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-subtle)'
+              }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: '50%',
+                  background: item.bg, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                }}>
+                  {item.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--zinc-900)' }}>{item.value}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{item.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Two column */}

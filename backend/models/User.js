@@ -20,6 +20,7 @@ const UserSchema = new mongoose.Schema({
   initials: { type: String },
   status: { type: String, enum: ['approved', 'suspended'], default: 'approved' },
   is_flagged: { type: Boolean, default: false },
+  fcm_tokens: [{ type: String }],
   created_at: { type: Date, default: Date.now }
 });
 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "180509955933",
+    "project_id": "rehabnation-blood-network",
+    "storage_bucket": "rehabnation-blood-network.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:180509955933:android:52c0104bb376b5c44f3ab4",
+        "android_client_info": {
+          "package_name": "in.rhfi.bloodnetwork"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_de2gHU2nAW_JWnR4YQFNwcuiYjAcri8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -404,7 +404,9 @@ export default function LandingPage() {
             © 2026 RehabNation Blood Network. All rights reserved.
           </span>
         </div>
-        <div className="flex gap-6" style={{ marginLeft: 'auto' }}>
+        <div className="flex gap-6" style={{ marginLeft: 'auto', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--zinc-400)', cursor: 'pointer' }} onClick={() => navigate('/privacy')}>Privacy Policy</span>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--zinc-400)', cursor: 'pointer' }} onClick={() => navigate('/terms')}>Terms & Conditions</span>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--zinc-400)', cursor: 'pointer' }} onClick={() => navigate('/contact')}>Contact Us</span>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--zinc-400)', cursor: 'pointer' }} onClick={() => navigate('/find-blood')}>Find Blood</span>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--zinc-400)', cursor: 'pointer' }} onClick={() => navigate('/emergency-request')}>Emergency Feed</span>

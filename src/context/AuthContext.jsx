@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import PushNotificationService from '../services/notificationService';
 
 const AuthContext = createContext(null);
 
@@ -46,6 +47,30 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : [];
   });
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+      showToast('Session expired. Please log in again.', 'error');
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('rehabnation:unauthorized', handleUnauthorized);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('rehabnation:unauthorized', handleUnauthorized);
+      }
+    };
+  }, []);
 
   const addAuditLog = (actorName, actorRole, action, target) => {
     const newLog = {
@@ -214,6 +239,8 @@ export function AuthProvider({ children }) {
           setUser(mapped);
           localStorage.setItem('rehabnation_current_user', JSON.stringify(mapped));
           await loadAllSessionData(mapped);
+          // Initialize push notifications on device
+          PushNotificationService.init();
         } catch (e) {
           console.error('Token verification failed:', e);
           logout();
@@ -250,6 +277,9 @@ export function AuthProvider({ children }) {
         addAuditLog(mapped.name, mapped.role, 'LOGIN', 'Successful login');
         await loadAllSessionData(mapped);
         
+        // Initialize push notifications
+        PushNotificationService.init();
+
         return { success: true };
       }
       return { success: false, error: 'Login failed' };
@@ -296,6 +326,9 @@ export function AuthProvider({ children }) {
         
         addAuditLog(mapped.name, 'user', 'REGISTER', 'Registered as user');
         await loadAllSessionData(mapped);
+
+        // Initialize push notifications
+        PushNotificationService.init();
         
         return { success: true };
       }
@@ -332,6 +365,20 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.error('Profile update error', e);
       return { success: false, error: e.response?.data?.error || e.message || 'Profile update failed' };
+    }
+  };
+
+  const deleteSelfAccount = async () => {
+    try {
+      const res = await api.delete('/users/me');
+      if (res.data.success) {
+        logout();
+        return { success: true };
+      }
+      return { success: false, error: 'Failed to delete account' };
+    } catch (e) {
+      console.error('Account deletion error', e);
+      return { success: false, error: e.response?.data?.error || e.message || 'Deletion failed' };
     }
   };
 
@@ -534,6 +581,7 @@ export function AuthProvider({ children }) {
         registerUser,
         logout,
         updateUserProfile,
+        deleteSelfAccount,
         suspendUserAccount,
         deleteUserAccount,
         verifyDonor,
@@ -544,6 +592,8 @@ export function AuthProvider({ children }) {
         recordOutcome,
         markNotificationAsRead,
         markAllNotificationsAsRead,
+        toast,
+        showToast,
         suspendHospitalAccount,
         createHospitalAccount,
         updateHospitalAccount
