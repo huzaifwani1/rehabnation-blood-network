@@ -11,33 +11,28 @@ import LandingPage      from './pages/LandingPage';
 import LoginPage        from './pages/LoginPage';
 import RegisterPage     from './pages/RegisterPage';
 import ContactPage      from './pages/ContactPage';
-import FindBloodPage    from './pages/FindBloodPage';
-import EmergencyFeedPage from './pages/EmergencyFeedPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsPage         from './pages/TermsPage';
 
-// User pages
-import UserDashboard    from './pages/user/UserDashboard';
-import UserNotifications from './pages/user/UserNotifications';
-import UserRequests     from './pages/user/UserRequests';
-import CreateRequest    from './pages/user/CreateRequest';
+// Hospital pages
+import HospitalDashboard from './pages/hospital/HospitalDashboard';
+import ImportDonorsPage  from './pages/hospital/ImportDonorsPage';
 import UserProfile      from './pages/user/UserProfile';
 import UserSettings     from './pages/user/UserSettings';
 
 // Admin pages
 import AdminLoginPage   from './pages/admin/AdminLoginPage';
 import AdminDashboard   from './pages/admin/AdminDashboard';
-import AdminUsers       from './pages/admin/AdminUsers';
-import AdminRequests    from './pages/admin/AdminRequests';
+import AdminHospitals   from './pages/admin/AdminHospitals';
 import AdminAuditLogs   from './pages/admin/AdminAuditLogs';
 import AdminSettings    from './pages/admin/AdminSettings';
 import AdminReports     from './pages/admin/AdminReports';
 
-// Protected route wrapper for User App
-function UserProtected({ children }) {
+// Protected route wrapper for Hospital Platform
+function HospitalProtected({ children }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== 'user') return <Navigate to="/" replace />;
+  if (user.role !== 'hospital') return <Navigate to="/" replace />;
   return children;
 }
 
@@ -51,7 +46,7 @@ function AdminProtected({ children }) {
 // Redirect logged-in users away from login/register
 function PublicOnly({ children }) {
   const { user } = useAuth();
-  if (user?.role === 'user') return <Navigate to="/dashboard" replace />;
+  if (user?.role === 'hospital') return <Navigate to="/dashboard" replace />;
   if (user?.role === 'admin') return <Navigate to="/" replace />;
   return children;
 }
@@ -124,9 +119,8 @@ function ToastNotification() {
   );
 }
 
-// Public App Routes (blood.rhfi.org.in / localhost default)
+// Public App Routes (hospital workspace default)
 function PublicAppRoutes() {
-  const { user } = useAuth();
   return (
     <Routes>
       {/* Public Pages */}
@@ -137,27 +131,10 @@ function PublicAppRoutes() {
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/terms" element={<TermsPage />} />
       
-      <Route 
-        path="/find-blood" 
-        element={
-          user && user.role === 'user' ? (
-            <UserProtected><AppLayout /></UserProtected>
-          ) : (
-            <FindBloodPage />
-          )
-        }
-      >
-        <Route index element={<FindBloodPage />} />
-      </Route>
-
-      <Route path="/emergency-request" element={<EmergencyFeedPage />} />
-
-      {/* User Dashboard */}
-      <Route path="/" element={<UserProtected><AppLayout /></UserProtected>}>
-        <Route path="dashboard" element={<UserDashboard />} />
-        <Route path="notifications" element={<UserNotifications />} />
-        <Route path="my-requests" element={<UserRequests />} />
-        <Route path="request-blood" element={<CreateRequest />} />
+      {/* Hospital Workspace */}
+      <Route path="/" element={<HospitalProtected><AppLayout /></HospitalProtected>}>
+        <Route path="dashboard" element={<HospitalDashboard />} />
+        <Route path="import-donors" element={<ImportDonorsPage />} />
         <Route path="profile" element={<UserProfile />} />
         <Route path="settings" element={<UserSettings />} />
       </Route>
@@ -184,8 +161,7 @@ function AdminAppRoutes() {
       {/* Admin Panel Dashboard */}
       <Route path="/" element={<AdminProtected><AppLayout /></AdminProtected>}>
         <Route index element={<AdminDashboard />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="requests" element={<AdminRequests />} />
+        <Route path="hospitals" element={<AdminHospitals />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="audit" element={<AdminAuditLogs />} />
         <Route path="settings" element={<AdminSettings />} />

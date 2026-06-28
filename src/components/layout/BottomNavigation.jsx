@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Search, Plus, Bell, User,
-  Droplets, Users, BarChart3, Settings, LogOut, ScrollText, Menu, X
+  LayoutDashboard, Users, BarChart3, Settings, LogOut, ScrollText, Menu, X, Upload, User
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function BottomNavigation() {
-  const { user, logout, notifications, requests } = useAuth();
+  const { user, logout, donors, users } = useAuth();
   const navigate = useNavigate();
   const [showAdminMenu, setShowAdminMenu] = useState(false);
 
@@ -18,13 +17,8 @@ export default function BottomNavigation() {
     navigate('/');
   };
 
-  // Notification count
-  const unreadCount = user?.role === 'user'
-    ? (notifications || []).filter(n => n.donor_id === user.id && !n.is_read).length
-    : 0;
-
-  // Requests count
-  const openRequestsCount = (requests || []).filter(r => r.status === 'open').length;
+  const donorCount = (donors || []).length;
+  const pendingHospitalsCount = (users || []).filter(u => u.role === 'hospital' && u.status === 'pending').length;
 
   if (user.role === 'admin') {
     return (
@@ -34,16 +28,12 @@ export default function BottomNavigation() {
             <LayoutDashboard size={20} />
             <span>Home</span>
           </NavLink>
-          <NavLink to="/requests" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+          <NavLink to="/hospitals" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
             <div style={{ position: 'relative' }}>
-              <Droplets size={20} />
-              {openRequestsCount > 0 && <span className="bottom-nav-badge">{openRequestsCount}</span>}
+              <Users size={20} />
+              {pendingHospitalsCount > 0 && <span className="bottom-nav-badge">{pendingHospitalsCount}</span>}
             </div>
-            <span>Requests</span>
-          </NavLink>
-          <NavLink to="/users" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-            <Users size={20} />
-            <span>Users</span>
+            <span>Hospitals</span>
           </NavLink>
           <NavLink to="/reports" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
             <BarChart3 size={20} />
@@ -91,33 +81,24 @@ export default function BottomNavigation() {
     );
   }
 
-  // User role
+  // Hospital role bottom nav
   return (
     <div className="bottom-nav user-bottom-nav">
       <NavLink to="/dashboard" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
         <LayoutDashboard size={20} />
-        <span>Home</span>
+        <span>Directory</span>
       </NavLink>
-      <NavLink to="/find-blood" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-        <Search size={20} />
-        <span>Find Blood</span>
-      </NavLink>
-      <NavLink to="/request-blood" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-        <div className="bottom-nav-center-btn">
-          <Plus size={24} color="#ffffff" />
-        </div>
-        <span style={{ marginTop: 4 }}>Request</span>
-      </NavLink>
-      <NavLink to="/notifications" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
-        <div style={{ position: 'relative' }}>
-          <Bell size={20} />
-          {unreadCount > 0 && <span className="bottom-nav-badge">{unreadCount}</span>}
-        </div>
-        <span>Alerts</span>
+      <NavLink to="/import-donors" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+        <Upload size={20} />
+        <span>Import</span>
       </NavLink>
       <NavLink to="/profile" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
         <User size={20} />
         <span>Profile</span>
+      </NavLink>
+      <NavLink to="/settings" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+        <Settings size={20} />
+        <span>Settings</span>
       </NavLink>
     </div>
   );

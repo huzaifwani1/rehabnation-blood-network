@@ -1,25 +1,19 @@
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  dob: { type: String },
-  gender: { type: String, enum: ['male', 'female', 'other'] },
+  name: { type: String, required: true }, // Organization name or Admin name
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   phone: { type: String, required: true },
-  email: { type: String, lowercase: true, trim: true },
-  blood_type: { type: String, required: true },
-  district: { type: String, required: true },
-  address: { type: String },
-  weight_kg: { type: Number },
-  hemoglobin_level: { type: Number },
-  last_donation_date: { type: String, default: '' },
-  donation_count: { type: Number, default: 0 },
-  verification_status: { type: String, enum: ['unverified', 'camp_verified'], default: 'unverified' },
-  is_available: { type: Boolean, default: true },
   password: { type: String, required: true },
-  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  role: { type: String, enum: ['hospital', 'admin'], default: 'hospital' },
+  status: { type: String, enum: ['pending', 'approved', 'suspended'], default: 'pending' },
+  
+  // Hospital specific details
+  license_number: { type: String, required: function() { return this.role === 'hospital'; } },
+  district: { type: String, required: true },
+  address: { type: String, required: true },
+  
   initials: { type: String },
-  status: { type: String, enum: ['approved', 'suspended'], default: 'approved' },
-  is_flagged: { type: Boolean, default: false },
   fcm_tokens: [{ type: String }],
   created_at: { type: Date, default: Date.now }
 });

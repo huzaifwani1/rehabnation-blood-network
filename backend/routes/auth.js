@@ -8,26 +8,18 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtsecretkey123!';
 
 // Helper to validate email format
 const validateEmail = (email) => {
-  if (!email) return true; // Optional now
+  if (!email) return false;
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(String(email).toLowerCase());
 };
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-  console.log('REGISTER REQUEST RECEIVED');
-  const { email, password, full_name, phone, ...rest } = req.body;
+  console.log('HOSPITAL REGISTER REQUEST RECEIVED');
+  const { email, password, name, phone, license_number, district, address } = req.body;
   
-  const logBody = { email, full_name, phone, ...rest };
-  console.log('REGISTER BODY:', JSON.stringify(logBody));
-  if (email) {
-    console.log(`REGISTER EMAIL: ${email}`);
-  } else {
-    console.log(`REGISTER PHONE: ${phone}`);
-  }
-
   try {
-    if (email && email.trim() && !validateEmail(email)) {
+    if (!email || !email.trim() || !validateEmail(email)) {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
@@ -35,20 +27,36 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
-    if (!full_name || !full_name.trim()) {
-      return res.status(400).json({ error: 'Full name is required' });
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Organization name is required' });
     }
 
     if (!phone || !phone.trim()) {
       return res.status(400).json({ error: 'Phone number is required' });
     }
 
+    if (!license_number || !license_number.trim()) {
+      return res.status(400).json({ error: 'License number is required' });
+    }
+
+    if (!district || !district.trim()) {
+      return res.status(400).json({ error: 'District is required' });
+    }
+
+    if (!address || !address.trim()) {
+      return res.status(400).json({ error: 'Address is required' });
+    }
+
     // Check if email already exists
-    if (email && email.trim()) {
-      const emailExists = await User.findOne({ email: email.trim().toLowerCase() });
-      if (emailExists) {
-        return res.status(400).json({ error: 'Account already exists with this email' });
-      }
+    const emailExists = await User.findOne({ email: email.trim().toLowerCase() });
+    if (emailExists) {
+      return res.status(400).json({ error: 'Account already exists with this email' });
+    }
+
+    // Check if license number exists
+    const licenseExists = await User.findOne({ license_number: license_number.trim() });
+    if (licenseExists) {
+      return res.status(400).json({ error: 'Hospital license number is already registered' });
     }
 
     // Hash password
@@ -56,23 +64,26 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, salt);
 
     // Get initials
-    const initials = full_name
-      ? full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-      : 'U';
+    const initials = name
+      ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+      : 'H';
 
     const newUser = new User({
-      name: full_name.trim(),
-      email: email ? email.trim().toLowerCase() : '',
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
       phone: phone.trim(),
       password: passwordHash,
+      license_number: license_number.trim(),
+      district: district.trim(),
+      address: address.trim(),
       initials,
-      role: 'user', // Defaults to standard user
-      ...rest
+      role: 'hospital',
+      status: 'pending' // pending approval
     });
 
-    console.log('ATTEMPTING USER SAVE');
+    console.log('ATTEMPTING HOSPITAL SAVE');
     await newUser.save();
-    console.log('USER SAVED SUCCESSFULLY');
+    console.log('HOSPITAL SAVED SUCCESSFULLY');
 
     // Create JWT Token
     const token = jwt.sign(
@@ -92,7 +103,7 @@ router.post('/register', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('REGISTER ERROR:', error.stack || error.message || error);
+    console.error('HOSPITAL REGISTER ERROR:', error);
     return res.status(500).json({ error: error.message });
   }
 });
@@ -119,8 +130,12 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid password' });
     }
 
+    if (user.role === 'hospital' && user.status === 'pending') {
+      return res.status(403).json({ error: 'Your organization account is pending approval by RehabNation Admin.' });
+    }
+
     if (user.status === 'suspended') {
-      return res.status(403).json({ error: 'Account has been suspended' });
+      return res.status(403).json({ error: 'Your account has been suspended/disabled.' });
     }
 
     // Create JWT Token

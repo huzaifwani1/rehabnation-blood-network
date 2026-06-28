@@ -16,7 +16,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const result = await login(email, password, 'user');
+    const result = await login(email, password, 'hospital');
     setLoading(false);
     if (result.success) {
       navigate('/dashboard');
@@ -40,7 +40,7 @@ export default function LoginPage() {
 
         <div className="auth-card animate-slideUp">
           <h2>Welcome back</h2>
-          <p>Sign in to access the RehabNation Blood Network</p>
+          <p>Sign in to access the RehabNation Hospital Platform</p>
 
           {error && (
             <div id="login-error" className="alert alert-critical" style={{ marginTop: 'var(--space-4)', marginBottom: 'var(--space-2)' }}>
@@ -50,12 +50,12 @@ export default function LoginPage() {
 
           <form className="auth-form" onSubmit={handleLogin} style={{ marginTop: 'var(--space-6)' }}>
             <div className="form-group">
-              <label className="form-label">Email address</label>
+              <label className="form-label">Hospital Email address</label>
               <input
                 id="login-email"
                 type="email"
                 className="form-input"
-                placeholder="you@example.com"
+                placeholder="hospital@example.com"
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError(''); }}
                 required
@@ -80,7 +80,7 @@ export default function LoginPage() {
                   id="login-password"
                   type={showPw ? 'text' : 'password'}
                   className="form-input"
-                  placeholder="Enter your password"
+                  placeholder="Enter organization password"
                   value={password}
                   onChange={e => { setPassword(e.target.value); setError(''); }}
                   style={{ paddingRight: 44 }}
@@ -110,8 +110,8 @@ export default function LoginPage() {
           </form>
 
           <div className="auth-switch">
-            Don't have an account?{' '}
-            <a onClick={() => navigate('/register')} style={{ cursor: 'pointer', color: 'var(--red-600)', fontWeight: 600 }} id="create-account-link">Create Account</a>
+            Don't have an organization account?{' '}
+            <a onClick={() => navigate('/register')} style={{ cursor: 'pointer', color: 'var(--red-600)', fontWeight: 600 }} id="create-account-link">Register Hospital</a>
           </div>
         </div>
       </div>

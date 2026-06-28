@@ -92,7 +92,14 @@ export default function NotificationBell() {
                   <div className="notif-content">
                     <div className="notif-title">{notif.title}</div>
                     <div className="notif-time">
-                      {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
+                      {(() => {
+                        try {
+                          const date = new Date(notif.created_at);
+                          return isNaN(date.getTime()) ? 'Just now' : formatDistanceToNow(date, { addSuffix: true });
+                        } catch (e) {
+                          return 'Just now';
+                        }
+                      })()}
                     </div>
                   </div>
                   {!notif.is_read && (

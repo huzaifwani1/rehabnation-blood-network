@@ -41,11 +41,11 @@ async function seedAdminUser() {
         email: adminEmail,
         phone: '1234567890',
         password: hashedPassword,
-        blood_type: 'O-', // System placeholder
         district: 'Lagos Mainland',
+        address: 'RehabNation HQ',
         role: 'admin',
         initials: 'RA',
-        verification_status: 'camp_verified'
+        status: 'approved'
       });
 
       await adminUser.save();
@@ -59,6 +59,7 @@ async function seedAdminUser() {
 // Routes mount
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/donors', require('./routes/donors'));
 app.use('/api/requests', require('./routes/requests'));
 app.use('/api/notifications', require('./routes/notifications'));
 

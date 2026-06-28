@@ -56,7 +56,7 @@ export default function UserSettings() {
           {[
             { label: 'Name', value: user.name },
             { label: 'Email', value: user.email || '—' },
-            { label: 'Role', value: 'User' },
+            { label: 'Role', value: user.role === 'hospital' ? 'Hospital / Blood Bank' : 'Platform Administrator' },
             { label: 'Account Status', value: user.status === 'approved' ? '✓ Active' : user.status },
             { label: 'Member Since', value: user.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) : '—' },
           ].map(item => (

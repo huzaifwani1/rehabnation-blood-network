@@ -1,25 +1,23 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Check } from 'lucide-react';
+import { ChevronRight, Check, AlertCircle, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { BLOOD_TYPES, ALL_DISTRICTS } from '../data/mockData';
-
-const STEPS_DONOR = ['Account', 'Blood Info', 'Location', 'Consent'];
+import { ALL_DISTRICTS } from '../data/mockData';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { registerUser } = useAuth();
   const [error, setError] = useState('');
-  const [step, setStep] = useState(0);
-
-  // Donor form state
+  
   const [form, setForm] = useState({
-    full_name: '', email: '', phone: '', password: '',
-    gender: 'male',
-    blood_type: '', dob: '', weight: '', hemoglobin_level: '',
-    district: '', address: '', city: '', region: '',
-    last_donation_date: '', donation_count: '0',
-    consent: false,
+    name: '',
+    email: '',
+    phone: '',
+    license_number: '',
+    district: '',
+    address: '',
+    password: '',
+    confirm_password: ''
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -27,101 +25,66 @@ export default function RegisterPage() {
 
   const update = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
-  const handleDonorSubmit = async () => {
-    console.log('--- SUBMITTING REGISTRATION FORM ---');
-    console.log('Form data being sent to registerUser:', {
-      email: form.email,
-      full_name: form.full_name,
-      phone: form.phone,
-      gender: form.gender,
-      blood_type: form.blood_type,
-      dob: form.dob,
-      weight_kg: form.weight,
-      hemoglobin_level: form.hemoglobin_level,
-      district: form.district,
-      address: form.address,
-      city: form.city,
-      region: form.region,
-      last_donation_date: form.last_donation_date,
-      donation_count: form.donation_count,
-    });
-    
-    setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setError('');
+
+    if (!form.name.trim()) return setError('Organization name is required');
+    if (!form.license_number.trim()) return setError('License number is required');
+    if (!form.email.trim()) return setError('Email address is required');
+    if (!form.phone.trim()) return setError('Phone number is required');
+    if (!form.district) return setError('District is required');
+    if (!form.address.trim()) return setError('Physical address is required');
+    
+    if (form.password.length < 8) {
+      return setError('Password must be at least 8 characters long');
+    }
+    if (form.password !== form.confirm_password) {
+      return setError('Passwords do not match');
+    }
+
+    setLoading(true);
     try {
       const result = await registerUser({
         email: form.email,
         password: form.password,
-        full_name: form.full_name,
+        name: form.name,
         phone: form.phone,
-        gender: form.gender,
-        blood_type: form.blood_type,
-        dob: form.dob,
-        weight_kg: form.weight,
-        hemoglobin_level: form.hemoglobin_level,
+        license_number: form.license_number,
         district: form.district,
-        address: form.address,
-        city: form.city,
-        region: form.region,
-        last_donation_date: form.last_donation_date,
-        donation_count: form.donation_count,
+        address: form.address
       });
 
-      console.log('Result received from registerUser:', result);
       setLoading(false);
-
       if (result.success) {
-        console.log('Registration succeeded! Setting submitted to true.');
         setSubmitted(true);
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
       } else {
-        console.warn('Registration failed with error:', result.error);
-        setError(result.error);
-        setStep(0);
+        setError(result.error || 'Registration failed');
       }
-    } catch (e) {
-      console.error('CRITICAL: Exception thrown in handleDonorSubmit:', e);
+    } catch (err) {
       setLoading(false);
-      setError(e.message || 'An unexpected error occurred');
-      setStep(0);
+      setError(err.message || 'An unexpected error occurred');
     }
-  };
-
-  const handleStep0Continue = () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!form.full_name || !form.full_name.trim()) {
-      setError('Full name is required');
-      return;
-    }
-    if (!form.email || !form.email.trim() || !emailRegex.test(form.email)) {
-      setError('Invalid email');
-      return;
-    }
-    if (!form.password || form.password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
-    }
-
-    setError('');
-    setStep(1);
   };
 
   if (submitted) {
     return (
       <div className="auth-page">
-        <div className="auth-bg" />
+        <div className="auth-bg-pattern" />
         <div className="auth-panel">
-          <div className="auth-card animate-slideUp" style={{ textAlign: 'center' }}>
-            <div style={{ width: 64, height: 64, background: 'var(--success-bg)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--space-4)' }}>
-              <Check size={28} color="var(--success)" />
+          <div className="auth-card animate-slideUp" style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(22, 163, 74, 0.1)', color: 'var(--color-success)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--space-5)' }}>
+              <Check size={32} />
             </div>
-            <h2>You're Registered!</h2>
-            <p style={{ marginTop: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-              Welcome to the RehabNation Blood Network. Setting up your dashboard…
+            <h2>Registration Submitted!</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: '0.92rem', lineHeight: '1.5' }}>
+              Thank you for registering <strong>{form.name}</strong> on the RehabNation Blood Network. 
+              Your organization account is pending approval by the RehabNation Super Admin. 
+              You will be able to log in once your license and registration details have been verified.
             </p>
-            <div className="spinner" style={{ margin: '0 auto' }} />
+            <button className="btn btn-primary w-full" onClick={() => navigate('/login')}>
+              Return to Login
+            </button>
           </div>
         </div>
       </div>
@@ -130,193 +93,143 @@ export default function RegisterPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-bg" />
-      <div className="auth-panel" style={{ maxWidth: 560 }}>
-        <div className="auth-logo" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
+      <div className="auth-bg-pattern" />
+      <div className="auth-panel" style={{ maxWidth: 650 }}>
+        <div className="auth-logo" style={{ cursor: 'pointer', marginBottom: 20 }} onClick={() => navigate('/')}>
           <img src="/logo.png" alt="RehabNation Blood Network" className="auth-logo-img" />
         </div>
 
-        <div className="auth-card animate-slideUp">
-          {/* Step wizard */}
-          <div className="step-wizard" style={{ marginBottom: 'var(--space-6)' }}>
-            {STEPS_DONOR.map((s, i) => (
-              <React.Fragment key={s}>
-                <div className={`step ${i === step ? 'active' : i < step ? 'done' : ''}`}
-                  style={{ flex: 'none', gap: 6 }}>
-                  <div className="step-num">
-                    {i < step ? <Check size={14} /> : i + 1}
-                  </div>
-                  <span className="step-label" style={{ display: window.innerWidth > 480 ? 'inline' : 'none' }}>{s}</span>
-                </div>
-                {i < STEPS_DONOR.length - 1 && (
-                  <div style={{
-                    flex: 1, height: 2,
-                    background: i < step ? 'var(--brand-red)' : 'var(--border-subtle)',
-                    borderRadius: 4
-                  }} />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
+        <div className="auth-card animate-slideUp" style={{ padding: 'var(--space-5) var(--space-6)' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', margin: '0 0 4px' }}>
+            <Building2 size={24} color="var(--red-600)" /> Hospital Registration
+          </h2>
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', margin: '0 0 var(--space-5)' }}>Register your organization to manage local blood donors</p>
 
-          {/* Step 0: Account */}
-          {step === 0 && (
-            <div className="auth-form">
-              <h3 style={{ marginBottom: 'var(--space-4)' }}>Basic Information</h3>
-              {error && (
-                <div id="register-error" className="alert alert-critical" style={{ marginBottom: 'var(--space-4)' }}>
-                  <span>{error}</span>
-                </div>
-              )}
-              {[
-                { label: 'Full Name', key: 'full_name', placeholder: 'Your legal name' },
-                { label: 'Email', key: 'email', placeholder: 'you@example.com', type: 'email' },
-                { label: 'Phone Number', key: 'phone', placeholder: '+234-800-000-0000' },
-                { label: 'Password', key: 'password', placeholder: 'At least 8 characters', type: 'password' },
-              ].map(f => (
-                <div key={f.key} className="form-group">
-                  <label className="form-label">{f.label} <span>*</span></label>
-                  <input id={`reg-${f.key}`} type={f.type || 'text'} className="form-input" placeholder={f.placeholder} value={form[f.key]} onChange={e => { update(f.key, e.target.value); setError(''); }} />
-                </div>
-              ))}
-              <div className="form-group">
-                <label className="form-label">Gender <span>*</span></label>
-                <select id="reg-gender" className="form-select" value={form.gender} onChange={e => { update('gender', e.target.value); setError(''); }}>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div className="flex gap-3 mt-4">
-                <button className="btn btn-secondary" onClick={() => navigate('/login')}>Back</button>
-                <button id="step0-next" className="btn btn-primary flex-1" onClick={handleStep0Continue}>Continue</button>
-              </div>
+          {error && (
+            <div className="alert alert-critical" style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertCircle size={16} /> <span>{error}</span>
             </div>
           )}
 
-          {/* Step 1: Blood Info */}
-          {step === 1 && (
-            <div className="auth-form">
-              <h3 style={{ marginBottom: 'var(--space-4)' }}>Blood & Health Information</h3>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="form-group">
-                <label className="form-label">Blood Type <span>*</span></label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-2)' }}>
-                  {BLOOD_TYPES.map(bt => (
-                    <button
-                      key={bt}
-                      id={`blood-type-${bt.replace('+', 'pos').replace('-', 'neg')}`}
-                      type="button"
-                      className={`btn ${form.blood_type === bt ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-                      onClick={() => update('blood_type', bt)}
-                    >
-                      {bt}
-                    </button>
-                  ))}
-                </div>
+                <label className="form-label">Hospital/Blood Bank Name *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. City General Hospital"
+                  value={form.name}
+                  onChange={e => update('name', e.target.value)}
+                  required
+                  disabled={loading}
+                />
               </div>
               <div className="form-group">
-                <label className="form-label">Date of Birth <span>*</span></label>
-                <input id="reg-dob" type="date" className="form-input" value={form.dob} onChange={e => update('dob', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Weight (kg) <span>*</span></label>
-                <input id="reg-weight" type="number" className="form-input" placeholder="e.g. 65" value={form.weight} onChange={e => update('weight', e.target.value)} />
-                <span className="form-hint">Minimum 50 kg required to donate</span>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Hemoglobin Level (g/dL) <span>*</span></label>
-                <input id="reg-hemoglobin" type="number" step="0.1" className="form-input" placeholder="e.g. 13.5" value={form.hemoglobin_level} onChange={e => update('hemoglobin_level', e.target.value)} />
-                <span className="form-hint">Minimum 12.5 g/dL required to donate</span>
-              </div>
-              <div className="flex gap-3 mt-4">
-                <button className="btn btn-secondary" onClick={() => setStep(0)}>Back</button>
-                <button id="step1-next" className="btn btn-primary flex-1" onClick={() => setStep(2)}>Continue</button>
+                <label className="form-label">Registration License Number *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. HSP-78321-AB"
+                  value={form.license_number}
+                  onChange={e => update('license_number', e.target.value)}
+                  required
+                  disabled={loading}
+                />
               </div>
             </div>
-          )}
 
-          {/* Step 2: Location */}
-          {step === 2 && (
-            <div className="auth-form">
-              <h3 style={{ marginBottom: 'var(--space-4)' }}>Location in Jammu & Kashmir</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="form-group">
-                <label className="form-label">District <span>*</span></label>
+                <label className="form-label">Official Email Address *</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="info@hospital.org"
+                  value={form.email}
+                  onChange={e => update('email', e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Contact Phone Number *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="+234..."
+                  value={form.phone}
+                  onChange={e => update('phone', e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16 }}>
+              <div className="form-group">
+                <label className="form-label">District *</label>
                 <select
-                  id="reg-district"
-                  className="form-select"
+                  className="form-input"
                   value={form.district}
                   onChange={e => update('district', e.target.value)}
+                  required
+                  disabled={loading}
                 >
-                  <option value="">Select your district</option>
-                  {ALL_DISTRICTS.map(d => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
+                  <option value="">Select District</option>
+                  {ALL_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
-                <span className="form-hint">Select the J&K district you currently reside in</span>
               </div>
               <div className="form-group">
-                <label className="form-label">Full Address <span>*</span></label>
-                <textarea
-                  id="reg-address"
-                  className="form-textarea"
-                  placeholder="Enter your full home address (neighbourhood, street, etc.)"
+                <label className="form-label">Physical Address *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="123 Hospital Road, Suite A"
                   value={form.address}
                   onChange={e => update('address', e.target.value)}
-                  rows={3}
+                  required
+                  disabled={loading}
                 />
               </div>
-              <div className="flex gap-3 mt-4">
-                <button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
-                <button id="step2-next" className="btn btn-primary flex-1" onClick={() => setStep(3)}>Continue</button>
-              </div>
             </div>
-          )}
 
-          {/* Step 3: Consent */}
-          {step === 3 && (
-            <div className="auth-form">
-              <h3 style={{ marginBottom: 'var(--space-4)' }}>Consent & Privacy</h3>
-              <div style={{
-                background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)', padding: 'var(--space-4)',
-                fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 'var(--space-4)'
-              }}>
-                <p><strong style={{ color: 'var(--text-primary)' }}>Data Use Agreement</strong></p>
-                <p style={{ marginTop: 'var(--space-2)' }}>By registering, you agree that RehabNation Blood Network may:</p>
-                <ul style={{ marginTop: 'var(--space-2)', paddingLeft: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <li>• Store your blood type and health information securely</li>
-                  <li>• Send you blood request notifications via your preferred channel</li>
-                  <li>• Share your contact details <strong>only</strong> with hospitals you explicitly accept</li>
-                  <li>• Record donation outcomes for platform statistics</li>
-                </ul>
-                <p style={{ marginTop: 'var(--space-3)' }}>Your data is encrypted at rest. You may withdraw consent at any time.</p>
-              </div>
-              <label style={{ display: 'flex', gap: 'var(--space-3)', cursor: 'pointer', alignItems: 'flex-start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="form-group">
+                <label className="form-label">Password *</label>
                 <input
-                  id="reg-consent"
-                  type="checkbox"
-                  checked={form.consent}
-                  onChange={e => update('consent', e.target.checked)}
-                  style={{ marginTop: 3, accentColor: 'var(--brand-red)', width: 16, height: 16 }}
+                  type="password"
+                  className="form-input"
+                  placeholder="At least 8 characters"
+                  value={form.password}
+                  onChange={e => update('password', e.target.value)}
+                  required
+                  disabled={loading}
                 />
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  I have read and agree to the data use agreement and terms of service.
-                </span>
-              </label>
-              <div className="flex gap-3 mt-4">
-                <button className="btn btn-secondary" onClick={() => setStep(2)}>Back</button>
-                <button
-                  id="reg-submit-btn"
-                  className="btn btn-primary flex-1"
-                  disabled={!form.consent || loading}
-                  onClick={handleDonorSubmit}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  {loading ? <div className="spinner" style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', margin: 0 }} /> : 'Complete Registration'}
-                </button>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Confirm Password *</label>
+                <input
+                  type="password"
+                  className="form-input"
+                  placeholder="Re-enter password"
+                  value={form.confirm_password}
+                  onChange={e => update('confirm_password', e.target.value)}
+                  required
+                  disabled={loading}
+                />
               </div>
             </div>
-          )}
+
+            <button type="submit" className="btn btn-primary w-full btn-lg" style={{ marginTop: 8 }} disabled={loading}>
+              {loading ? 'Submitting Registration...' : 'Register Organization'}
+            </button>
+          </form>
+
+          <div className="auth-switch" style={{ marginTop: 20 }}>
+            Already have an organization account?{' '}
+            <a onClick={() => navigate('/login')} style={{ cursor: 'pointer', color: 'var(--red-600)', fontWeight: 600 }}>Sign In</a>
+          </div>
         </div>
       </div>
     </div>
