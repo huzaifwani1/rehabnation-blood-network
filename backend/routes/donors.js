@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Donor = require('../models/Donor');
 const User = require('../models/User');
 const { authenticateJWT, authorizeRoles } = require('../middleware/auth');
@@ -73,7 +74,7 @@ router.get('/stats', authenticateJWT, async (req, res) => {
       // Hospital specific stats
       const totalDonors = await Donor.countDocuments({ hospital: req.user.id });
       const bloodGroups = await Donor.aggregate([
-        { $match: { hospital: new require('mongoose').Types.ObjectId(req.user.id) } },
+        { $match: { hospital: new mongoose.Types.ObjectId(req.user.id) } },
         { $group: { _id: '$blood_type', count: { $sum: 1 } } }
       ]);
 

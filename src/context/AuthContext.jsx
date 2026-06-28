@@ -26,9 +26,16 @@ const mapUserResponse = (u) => {
     email: u.email,
     name: name,
     phone: u.phone,
-    license_number: u.license_number,
-    district: u.district,
-    address: u.address,
+    // Legacy field
+    license_number: u.license_number || u.registration_number,
+    // Phase 2 hospital organization fields
+    blood_bank_name: u.blood_bank_name || '',
+    registration_number: u.registration_number || u.license_number || '',
+    hospital_type: u.hospital_type || '',
+    contact_person: u.contact_person || '',
+    district: u.district || '',
+    state: u.state || '',
+    address: u.address || '',
     initials: initials,
     status: u.status || 'pending',
     created_at: u.created_at
