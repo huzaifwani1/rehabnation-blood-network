@@ -24,10 +24,13 @@ import UserSettings     from './pages/user/UserSettings';
 import AdminLoginPage   from './pages/admin/AdminLoginPage';
 import AdminDashboard   from './pages/admin/AdminDashboard';
 import AdminHospitals   from './pages/admin/AdminHospitals';
+import AdminHospitalDetail from './pages/admin/AdminHospitalDetail';
+import AdminDonors      from './pages/admin/AdminDonors';
 import AdminEmergencySearch from './pages/admin/AdminEmergencySearch';
 import AdminAuditLogs   from './pages/admin/AdminAuditLogs';
 import AdminSettings    from './pages/admin/AdminSettings';
 import AdminReports     from './pages/admin/AdminReports';
+import AdminPendingApprovals from './pages/admin/AdminPendingApprovals';
 
 // Protected route wrapper for Hospital Platform
 function HospitalProtected({ children }) {
@@ -163,10 +166,13 @@ function AdminAppRoutes() {
       <Route path="/" element={<AdminProtected><AppLayout /></AdminProtected>}>
         <Route index element={<AdminDashboard />} />
         <Route path="hospitals" element={<AdminHospitals />} />
+        <Route path="hospitals/:id" element={<AdminHospitalDetail />} />
+        <Route path="donors" element={<AdminDonors />} />
         <Route path="emergency-search" element={<AdminEmergencySearch />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="audit" element={<AdminAuditLogs />} />
         <Route path="settings" element={<AdminSettings />} />
+        <Route path="pending" element={<AdminPendingApprovals />} />
       </Route>
 
       {/* Fallback */}

@@ -138,4 +138,41 @@ router.delete('/:id', authenticateJWT, authorizeRoles('admin'), async (req, res)
   }
 });
 
+// GET /api/users/:id (Admin: Fetch single hospital profile)
+router.get('/:id', authenticateJWT, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) return res.status(404).json({ error: 'Hospital not found' });
+    return res.json(user);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/users/:id/stats (Admin: Per-hospital donor statistics)
+router.get('/:id/stats', authenticateJWT, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const hospitalId = new mongoose.Types.ObjectId(req.params.id);
+
+    const totalDonors  = await Donor.countDocuments({ hospital: hospitalId });
+    const activeDonors = await Donor.countDocuments({ hospital: hospitalId, is_available: true });
+
+    const bloodGroups = await Donor.aggregate([
+      { $match: { hospital: hospitalId } },
+      { $group: { _id: '$blood_type', count: { $sum: 1 } } }
+    ]);
+    const bloodTypeCounts = {};
+    bloodGroups.forEach(g => { bloodTypeCounts[g._id] = g.count; });
+
+    const lastDonor = await Donor.findOne({ hospital: hospitalId })
+      .sort({ created_at: -1 })
+      .select('full_name last_donation_date created_at');
+
+    return res.json({ totalDonors, activeDonors, bloodTypeCounts, lastActivity: lastDonor?.created_at });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

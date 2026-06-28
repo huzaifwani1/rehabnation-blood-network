@@ -93,6 +93,19 @@ router.get('/stats', authenticateJWT, async (req, res) => {
   }
 });
 
+// GET /api/donors/hospital/:hospitalId (Admin: Get all donors for a specific hospital)
+router.get('/hospital/:hospitalId', authenticateJWT, authorizeRoles('admin'), async (req, res) => {
+  try {
+    const hospitalId = new mongoose.Types.ObjectId(req.params.hospitalId);
+    const donors = await Donor.find({ hospital: hospitalId })
+      .populate('hospital', 'name email phone district registration_number')
+      .sort({ created_at: -1 });
+    return res.json(donors);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
 // POST /api/donors (Create a donor record manually)
 router.post('/', authenticateJWT, authorizeRoles('hospital', 'admin'), async (req, res) => {
   const { full_name, dob, gender, phone, email, blood_type, district, address, weight_kg, hemoglobin_level, last_donation_date, donation_count } = req.body;

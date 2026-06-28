@@ -187,6 +187,60 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const fetchHospitalById = async (id) => {
+    try {
+      const res = await api.get(`/users/${id}`);
+      return { success: true, hospital: res.data };
+    } catch (e) {
+      return { success: false, error: e.response?.data?.error || e.message };
+    }
+  };
+
+  const fetchHospitalStats = async (id) => {
+    try {
+      const res = await api.get(`/users/${id}/stats`);
+      return { success: true, stats: res.data };
+    } catch (e) {
+      return { success: false, error: e.response?.data?.error || e.message };
+    }
+  };
+
+  const fetchHospitalDonors = async (id) => {
+    try {
+      const res = await api.get(`/donors/hospital/${id}`);
+      return { success: true, donors: res.data };
+    } catch (e) {
+      return { success: false, error: e.response?.data?.error || e.message };
+    }
+  };
+
+  const updateDonorAsAdmin = async (donorId, donorData) => {
+    try {
+      const res = await api.put(`/donors/${donorId}`, donorData);
+      if (res.data.success) {
+        await fetchDonors();
+        return { success: true };
+      }
+      return { success: false, error: 'Failed to update donor' };
+    } catch (e) {
+      return { success: false, error: e.response?.data?.error || e.message };
+    }
+  };
+
+  const deleteDonorAsAdmin = async (donorId) => {
+    try {
+      const res = await api.delete(`/donors/${donorId}`);
+      if (res.data.success) {
+        await fetchDonors();
+        return { success: true };
+      }
+      return { success: false, error: 'Failed to delete donor' };
+    } catch (e) {
+      return { success: false, error: e.response?.data?.error || e.message };
+    }
+  };
+
+
   const loadAllSessionData = async (currentUser) => {
     if (!currentUser) return;
     await Promise.all([
@@ -410,6 +464,12 @@ export function AuthProvider({ children }) {
         deleteDonor,
         importDonors,
         fetchStats,
+        fetchHospitalById,
+        fetchHospitalStats,
+        fetchHospitalDonors,
+        updateDonorAsAdmin,
+        deleteDonorAsAdmin,
+        fetchUsers,
         toast,
         showToast
       }}

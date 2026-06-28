@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, User, Settings, LogOut, Users,
-  ScrollText, BarChart3, ShieldCheck, Plus, Upload, Search
+  ScrollText, BarChart3, ShieldCheck, ShieldAlert, Upload, Search, Building2, Database
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -33,9 +33,8 @@ export default function Sidebar() {
     navigate('/');
   };
 
-  // Count donor records
   const donorCount = (donors || []).length;
-  const pendingHospitalsCount = (users || []).filter(u => u.role === 'hospital' && u.status === 'pending').length;
+  const pendingCount = (users || []).filter(u => u.role === 'hospital' && u.status === 'pending').length;
 
   const renderNav = () => {
     if (user?.role === 'hospital') {
@@ -53,20 +52,24 @@ export default function Sidebar() {
     if (user?.role === 'admin') {
       return (
         <>
-          <SidebarItem to="/" end icon={LayoutDashboard} label="Dashboard" />
-          <SectionLabel label="Operations" />
-          <SidebarItem to="/hospitals" icon={Users} label="Hospitals" badge={pendingHospitalsCount > 0 ? String(pendingHospitalsCount) : undefined} />
-          <SidebarItem to="/emergency-search" icon={Search} label="National Search" />
+          <SidebarItem to="/" end icon={LayoutDashboard} label="National Dashboard" />
+          <SectionLabel label="Hospital Management" />
+          <SidebarItem to="/hospitals" icon={Building2} label="Hospitals" badge={pendingCount > 0 ? String(pendingCount) : undefined} />
+          <SidebarItem to="/pending" icon={ShieldAlert} label="Pending Approvals" badge={pendingCount > 0 ? String(pendingCount) : undefined} />
+          <SectionLabel label="Donor Registry" />
+          <SidebarItem to="/donors" icon={Database} label="All Donors" badge={donorCount > 0 ? String(donorCount) : undefined} />
+          <SidebarItem to="/emergency-search" icon={Search} label="Emergency Search" />
           <SectionLabel label="Platform" />
-          <SidebarItem to="/reports" icon={BarChart3} label="Reports & Stats" />
+          <SidebarItem to="/reports" icon={BarChart3} label="National Analytics" />
           <SidebarItem to="/audit" icon={ScrollText} label="Audit Logs" />
-          <SidebarItem to="/settings" icon={Settings} label="Settings" />
+          <SidebarItem to="/settings" icon={Settings} label="System Settings" />
         </>
       );
     }
 
     return null;
   };
+
 
   if (!user) return null;
 

@@ -1,188 +1,167 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Search, Phone, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { Search, Phone, ShieldCheck, Clock, MapPin, Eye, X, Filter, Building } from 'lucide-react';
 import { BLOOD_TYPES, ALL_DISTRICTS } from '../../data/mockData';
 
 export default function AdminEmergencySearch() {
-  const { donors, fetchDonors } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [bloodFilter, setBloodFilter] = useState('');
-  const [districtFilter, setDistrictFilter] = useState('');
-  const [availabilityFilter, setAvailabilityFilter] = useState('all'); // 'all', 'active', 'inactive'
-  const [selectedDonor, setSelectedDonor] = useState(null);
+  const { donors } = useAuth();
+  const [bloodGroup, setBloodGroup] = useState('');
+  const [district, setDistrict] = useState('');
+  const [availability, setAvailability] = useState('');
+  const [donatedBefore, setDonatedBefore] = useState('');
+  const [searched, setSearched] = useState(false);
 
-  useEffect(() => {
-    fetchDonors();
-  }, []);
-
-  const isEligibleToDonate = (lastDonationDate) => {
-    if (!lastDonationDate) return true;
-    const diffTime = Math.abs(new Date() - new Date(lastDonationDate));
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 56;
+  const isEligible = (date) => {
+    if (!date) return true;
+    return Math.ceil(Math.abs(new Date() - new Date(date)) / (1000 * 60 * 60 * 24)) >= 56;
   };
 
-  // Perform national database filtering on the frontend
-  const filteredDonors = donors.filter(d => {
-    const matchesSearch = !searchTerm || 
-      d.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      d.phone.includes(searchTerm) ||
-      d.hospital?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-    const matchesBlood = !bloodFilter || d.blood_type === bloodFilter;
-    const matchesDistrict = !districtFilter || d.district === districtFilter;
-    
-    let matchesAvailability = true;
-    if (availabilityFilter === 'active') {
-      matchesAvailability = d.is_available !== false;
-    } else if (availabilityFilter === 'inactive') {
-      matchesAvailability = d.is_available === false;
-    }
+  const results = searched ? donors.filter(d => {
+    const matchBlood = !bloodGroup || d.blood_type === bloodGroup;
+    const matchDist  = !district || d.district === district;
+    const matchAvail = availability === 'active' ? d.is_available !== false :
+                       availability === 'ready' ? isEligible(d.last_donation_date) :
+                       availability === 'inactive' ? d.is_available === false : true;
+    const matchDate  = !donatedBefore || (d.last_donation_date && new Date(d.last_donation_date) < new Date(donatedBefore));
+    return matchBlood && matchDist && matchAvail && matchDate;
+  }) : [];
 
-    return matchesSearch && matchesBlood && matchesDistrict && matchesAvailability;
-  });
+  const bloodCompatibility = {
+    'O-': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'],
+    'O+': ['O+', 'A+', 'B+', 'AB+'],
+    'A-': ['A-', 'A+', 'AB-', 'AB+'],
+    'A+': ['A+', 'AB+'],
+    'B-': ['B-', 'B+', 'AB-', 'AB+'],
+    'B+': ['B+', 'AB+'],
+    'AB-': ['AB-', 'AB+'],
+    'AB+': ['AB+'],
+  };
 
   return (
-    <div style={{ padding: '0 var(--space-4)', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ padding: '0 var(--space-4)', maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
       {/* Header */}
       <div>
-        <h2 style={{ margin: '0 0 4px' }}>National Emergency Donor Lookup</h2>
-        <p style={{ color: 'var(--text-muted)', margin: 0 }}>Search across all registered hospital databases for compatible donors</p>
+        <h2 style={{ margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AlertCircle size={22} color="var(--red-600)" /> National Emergency Blood Search
+        </h2>
+        <p style={{ color: 'var(--text-muted)', margin: 0 }}>Search across all registered hospitals. Results are visible to Super Admins only.</p>
       </div>
 
-      {/* Filters Card */}
-      <div className="card" style={{ padding: 'var(--space-4)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 12 }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--zinc-400)' }} />
-            <input
-              type="text"
-              placeholder="Search by donor name, phone, hospital..."
-              className="form-input"
-              style={{ paddingLeft: 32 }}
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div>
-            <select className="form-input" value={bloodFilter} onChange={e => setBloodFilter(e.target.value)}>
-              <option value="">Blood Type</option>
+      {/* Search Panel */}
+      <div className="card" style={{ padding: 'var(--space-5)' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: '0.95rem' }}>Search Criteria</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+          <div className="form-group">
+            <label className="form-label">Blood Group</label>
+            <select className="form-input" value={bloodGroup} onChange={e => setBloodGroup(e.target.value)}>
+              <option value="">Any Blood Group</option>
               {BLOOD_TYPES.map(bt => <option key={bt} value={bt}>{bt}</option>)}
             </select>
           </div>
-          <div>
-            <select className="form-input" value={districtFilter} onChange={e => setDistrictFilter(e.target.value)}>
-              <option value="">District</option>
+          <div className="form-group">
+            <label className="form-label">District</label>
+            <select className="form-input" value={district} onChange={e => setDistrict(e.target.value)}>
+              <option value="">Any District</option>
               {ALL_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
-          <div>
-            <select className="form-input" value={availabilityFilter} onChange={e => setAvailabilityFilter(e.target.value)}>
-              <option value="all">Availability (All)</option>
-              <option value="active">Active Only</option>
-              <option value="inactive">Inactive Only</option>
+          <div className="form-group">
+            <label className="form-label">Availability</label>
+            <select className="form-input" value={availability} onChange={e => setAvailability(e.target.value)}>
+              <option value="">Any</option>
+              <option value="active">Active Donors</option>
+              <option value="ready">Ready to Donate (56+ days)</option>
+              <option value="inactive">Inactive Donors</option>
             </select>
           </div>
+          <div className="form-group">
+            <label className="form-label">Last Donated Before</label>
+            <input type="date" className="form-input" value={donatedBefore} onChange={e => setDonatedBefore(e.target.value)} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 10 }}>
+          {bloodGroup && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              <strong>{bloodGroup}</strong> can donate to: {bloodCompatibility[bloodGroup]?.join(', ') || 'Unknown'}
+            </div>
+          )}
+          <button className="btn btn-primary" onClick={() => setSearched(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+            <Search size={15} /> Search Donors
+          </button>
         </div>
       </div>
 
-      {/* Directory Table */}
-      <div className="card" style={{ overflowX: 'auto' }}>
-        <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Donor</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Blood Group</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Managing Hospital</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Phone</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Last Donation</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px' }}>Availability</th>
-              <th style={{ textAlign: 'right', padding: '12px 16px' }}>Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredDonors.length === 0 ? (
-              <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '40px var(--space-4)', color: 'var(--text-muted)' }}>
-                  No compatible donors found matching the query.
-                </td>
-              </tr>
-            ) : (
-              filteredDonors.map(donor => (
-                <tr key={donor._id || donor.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  <td style={{ padding: '16px 16px', fontWeight: 600, color: 'var(--zinc-900)' }}>
-                    <div>{donor.full_name}</div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-muted)' }}>{donor.gender}, {donor.dob ? (new Date().getFullYear() - new Date(donor.dob).getFullYear()) : 'N/A'} yrs</div>
-                  </td>
-                  <td style={{ padding: '16px 16px' }}>
-                    <span style={{ background: 'var(--red-50)', color: 'var(--red-600)', padding: '4px 10px', borderRadius: 99, fontWeight: 800, fontSize: '0.85rem' }}>
-                      {donor.blood_type}
-                    </span>
-                  </td>
-                  <td style={{ padding: '16px 16px', fontWeight: 600, color: 'var(--zinc-700)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Building size={14} color="var(--red-600)" />
-                      {donor.hospital?.name || 'Unknown Hospital'}
-                    </div>
-                  </td>
-                  <td style={{ padding: '16px 16px', color: 'var(--zinc-600)' }}>{donor.phone}</td>
-                  <td style={{ padding: '16px 16px', color: 'var(--zinc-600)' }}>
-                    {donor.last_donation_date ? (
-                      <span style={{ color: isEligibleToDonate(donor.last_donation_date) ? 'var(--green-700)' : 'var(--amber-700)', fontWeight: 600 }}>
-                        {donor.last_donation_date}
-                      </span>
-                    ) : 'Never'}
-                  </td>
-                  <td style={{ padding: '16px 16px' }}>
-                    <span style={{
-                      padding: '3px 8px', borderRadius: 99, fontSize: '0.72rem', fontWeight: 700,
-                      background: donor.is_available !== false ? 'rgba(22, 163, 74, 0.1)' : 'var(--zinc-100)',
-                      color: donor.is_available !== false ? 'var(--green-700)' : 'var(--zinc-500)'
-                    }}>
-                      {donor.is_available !== false ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '16px 16px', textAlign: 'right' }}>
-                    <button className="btn btn-sm btn-secondary" onClick={() => setSelectedDonor(donor)} style={{ display: 'inline-flex', alignItems: 'center', padding: 6 }}>
-                      <Eye size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Details Modal */}
-      {selectedDonor && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="card animate-slideUp" style={{ width: '90%', maxWidth: 500, padding: 'var(--space-5)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid var(--border-light)', paddingBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>National Donor Record</h3>
-              <button onClick={() => setSelectedDonor(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[
-                { label: 'Full Name', value: selectedDonor.full_name },
-                { label: 'Blood Group', value: selectedDonor.blood_type },
-                { label: 'District', value: selectedDonor.district },
-                { label: 'Managing Hospital', value: selectedDonor.hospital?.name || 'Unknown' },
-                { label: 'Hospital Phone', value: selectedDonor.hospital?.phone || 'Unknown' },
-                { label: 'Donor Phone', value: selectedDonor.phone },
-                { label: 'Donor Email', value: selectedDonor.email || 'None' },
-                { label: 'Last Donation Date', value: selectedDonor.last_donation_date || 'Never' },
-                { label: 'Total Donations', value: selectedDonor.donation_count || 0 },
-                { label: 'Availability', value: selectedDonor.is_available !== false ? 'Active' : 'Inactive' }
-              ].map(item => (
-                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>
-                  <span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.85rem' }}>{item.label}</span>
-                  <span style={{ fontWeight: 700, color: 'var(--zinc-900)', fontSize: '0.85rem' }}>{item.value}</span>
-                </div>
-              ))}
-            </div>
+      {/* Results */}
+      {searched && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0 }}>
+              {results.length > 0 ? `${results.length} donor${results.length !== 1 ? 's' : ''} found` : 'No donors found'}
+            </h3>
+            <button className="btn btn-sm btn-secondary" onClick={() => { setSearched(false); setBloodGroup(''); setDistrict(''); setAvailability(''); setDonatedBefore(''); }}>
+              Clear Results
+            </button>
           </div>
+
+          {results.length === 0 ? (
+            <div className="card" style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+              No donors found matching your search criteria. Try adjusting your filters.
+            </div>
+          ) : (
+            <div className="card" style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
+                    {['Donor', 'Blood Group', 'Hospital', 'Phone', 'District', 'Last Donation', 'Status'].map(h => (
+                      <th key={h} style={{ textAlign: 'left', padding: '12px 14px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map(d => {
+                    const eligible = isEligible(d.last_donation_date);
+                    const active = d.is_available !== false;
+                    return (
+                      <tr key={d._id || d.id} style={{ borderBottom: '1px solid var(--border-light)', background: active && eligible ? 'rgba(22,163,74,0.02)' : undefined }}>
+                        <td style={{ padding: '12px 14px', fontWeight: 700, color: 'var(--zinc-900)' }}>{d.full_name}</td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span style={{ background: 'var(--red-50)', color: 'var(--red-600)', padding: '3px 10px', borderRadius: 99, fontWeight: 800, fontSize: '0.8rem' }}>{d.blood_type}</span>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{d.hospital?.name || 'Unknown'}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>ID: {String(d.hospital?._id || d.hospital).slice(-8)}</div>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <a href={`tel:${d.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--green-700)', fontWeight: 700, textDecoration: 'none', fontSize: '0.88rem' }}>
+                            <Phone size={13} /> {d.phone}
+                          </a>
+                        </td>
+                        <td style={{ padding: '12px 14px', color: 'var(--zinc-600)', fontSize: '0.88rem' }}>{d.district}</td>
+                        <td style={{ padding: '12px 14px', fontSize: '0.82rem', fontWeight: 600, color: eligible ? 'var(--green-700)' : 'var(--amber-700)' }}>
+                          {d.last_donation_date || 'Never'}
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          {active && eligible ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--green-700)', fontWeight: 700, fontSize: '0.75rem' }}>
+                              <CheckCircle size={12} /> Available
+                            </span>
+                          ) : !active ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--zinc-500)', fontWeight: 700, fontSize: '0.75rem' }}>
+                              <AlertCircle size={12} /> Inactive
+                            </span>
+                          ) : (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--amber-700)', fontWeight: 700, fontSize: '0.75rem' }}>
+                              <Clock size={12} /> In Cooldown
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>
