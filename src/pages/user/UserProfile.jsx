@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Phone, Mail, MapPin, ShieldCheck, ShieldAlert, Edit3, Save, X, Clock, LogOut } from 'lucide-react';
+import { User, Phone, Mail, MapPin, ShieldCheck, ShieldAlert, Edit3, Save, Clock, LogOut, Building, Layers } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ALL_DISTRICTS } from '../../data/mockData';
 
@@ -34,10 +34,14 @@ export default function UserProfile() {
   
   const [form, setForm] = useState({
     name: user?.name || '',
+    blood_bank_name: user?.blood_bank_name || '',
+    registration_number: user?.registration_number || '',
+    hospital_type: user?.hospital_type || 'Government',
+    contact_person: user?.contact_person || '',
     phone: user?.phone || '',
     email: user?.email || '',
-    license_number: user?.license_number || '',
     district: user?.district || '',
+    state: user?.state || '',
     address: user?.address || ''
   });
   
@@ -49,18 +53,23 @@ export default function UserProfile() {
 
   const handleSave = async () => {
     setError('');
-    if (!form.name?.trim()) return setError('Organization name is required');
+    if (!form.name?.trim()) return setError('Hospital name is required');
     if (!form.phone?.trim()) return setError('Phone number is required');
     if (!form.district?.trim()) return setError('District is required');
+    if (!form.state?.trim()) return setError('State is required');
     if (!form.address?.trim()) return setError('Address is required');
 
     setLoading(true);
     const result = await updateUserProfile(user.id, {
       name: form.name,
+      blood_bank_name: form.blood_bank_name,
+      registration_number: form.registration_number,
+      hospital_type: form.hospital_type,
+      contact_person: form.contact_person,
       phone: form.phone,
       email: form.email,
-      license_number: form.license_number,
       district: form.district,
+      state: form.state,
       address: form.address,
     });
     setLoading(false);
@@ -78,10 +87,14 @@ export default function UserProfile() {
   const handleCancel = () => {
     setForm({
       name: user.name || '',
+      blood_bank_name: user.blood_bank_name || '',
+      registration_number: user.registration_number || '',
+      hospital_type: user.hospital_type || 'Government',
+      contact_person: user.contact_person || '',
       phone: user.phone || '',
       email: user.email || '',
-      license_number: user.license_number || '',
       district: user.district || '',
+      state: user.state || '',
       address: user.address || ''
     });
     setEditing(false);
@@ -89,8 +102,8 @@ export default function UserProfile() {
   };
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 var(--space-4)' }}>
-      {/* Cover / Header section */}
+    <div style={{ maxWidth: 850, margin: '0 auto', padding: '0 var(--space-4)' }}>
+      {/* Header section */}
       <div className="card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-5)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
           <div className="avatar avatar-xl" style={{ width: 80, height: 80, fontSize: '2rem', background: 'var(--red-600)', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
@@ -102,7 +115,7 @@ export default function UserProfile() {
               <StatusBadge status={user.status} />
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <MapPin size={14} /> {user.district}, Physical Location
+              <MapPin size={14} /> {user.district}, {user.state}
             </div>
           </div>
           <div>
@@ -128,17 +141,21 @@ export default function UserProfile() {
         </div>
       )}
 
-      {/* Main details card */}
+      {/* Details Card */}
       <div className="card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-5)' }}>
         <h3 style={{ margin: '0 0 var(--space-5)', borderBottom: '1px solid var(--border-light)', paddingBottom: 12 }}>Organization Details</h3>
 
         {!editing ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px 16px' }}>
             {[
-              { label: 'Hospital/Bank Name', value: user.name, icon: <User size={16} color="var(--red-600)" /> },
-              { label: 'License Number', value: user.license_number, icon: <ShieldCheck size={16} color="var(--red-600)" /> },
+              { label: 'Hospital Name', value: user.name, icon: <Building size={16} color="var(--red-600)" /> },
+              { label: 'Blood Bank Name', value: user.blood_bank_name || 'None', icon: <Layers size={16} color="var(--red-600)" /> },
+              { label: 'Registration Number', value: user.registration_number, icon: <ShieldCheck size={16} color="var(--red-600)" /> },
+              { label: 'Hospital Type', value: user.hospital_type, icon: <Layers size={16} color="var(--red-600)" /> },
+              { label: 'Contact Person', value: user.contact_person, icon: <User size={16} color="var(--red-600)" /> },
               { label: 'Contact Phone', value: user.phone, icon: <Phone size={16} color="var(--red-600)" /> },
               { label: 'Official Email', value: user.email, icon: <Mail size={16} color="var(--red-600)" /> },
+              { label: 'State', value: user.state, icon: <MapPin size={16} color="var(--red-600)" /> },
               { label: 'District', value: user.district, icon: <MapPin size={16} color="var(--red-600)" /> },
               { label: 'Physical Address', value: user.address, icon: <MapPin size={16} color="var(--red-600)" /> },
             ].map((item, idx) => (
@@ -157,7 +174,7 @@ export default function UserProfile() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="form-group">
-                <label className="form-label">Hospital/Bank Name</label>
+                <label className="form-label">Hospital Name</label>
                 <input
                   type="text"
                   className="form-input"
@@ -167,18 +184,54 @@ export default function UserProfile() {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">License Number</label>
+                <label className="form-label">Blood Bank Name</label>
                 <input
                   type="text"
                   className="form-input"
-                  value={form.license_number}
-                  onChange={e => setForm({ ...form, license_number: e.target.value })}
-                  disabled={true} // License number is not editable once registered
+                  value={form.blood_bank_name}
+                  onChange={e => setForm({ ...form, blood_bank_name: e.target.value })}
+                  disabled={loading}
                 />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="form-group">
+                <label className="form-label">Registration Number</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={form.registration_number}
+                  disabled={true} // Read-only
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Hospital Type</label>
+                <select
+                  className="form-input"
+                  value={form.hospital_type}
+                  onChange={e => setForm({ ...form, hospital_type: e.target.value })}
+                  disabled={loading}
+                >
+                  <option value="Government">Government</option>
+                  <option value="Private">Private</option>
+                  <option value="NGO">NGO</option>
+                  <option value="Charitable">Charitable</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="form-group">
+                <label className="form-label">Contact Person Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={form.contact_person}
+                  onChange={e => setForm({ ...form, contact_person: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
               <div className="form-group">
                 <label className="form-label">Contact Phone</label>
                 <input
@@ -189,6 +242,32 @@ export default function UserProfile() {
                   disabled={loading}
                 />
               </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="form-group">
+                <label className="form-label">Official Email</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={form.email}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">State</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={form.state}
+                  onChange={e => setForm({ ...form, state: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="form-group">
                 <label className="form-label">District</label>
                 <select
@@ -200,28 +279,16 @@ export default function UserProfile() {
                   {ALL_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Official Email</label>
-              <input
-                type="email"
-                className="form-input"
-                value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Physical Address</label>
-              <textarea
-                className="form-input"
-                rows="3"
-                value={form.address}
-                onChange={e => setForm({ ...form, address: e.target.value })}
-                disabled={loading}
-              />
+              <div className="form-group">
+                <label className="form-label">Physical Address</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={form.address}
+                  onChange={e => setForm({ ...form, address: e.target.value })}
+                  disabled={loading}
+                />
+              </div>
             </div>
           </div>
         )}

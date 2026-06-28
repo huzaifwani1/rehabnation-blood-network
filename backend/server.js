@@ -43,6 +43,7 @@ async function seedAdminUser() {
         password: hashedPassword,
         district: 'Lagos Mainland',
         address: 'RehabNation HQ',
+        state: 'Lagos',
         role: 'admin',
         initials: 'RA',
         status: 'approved'

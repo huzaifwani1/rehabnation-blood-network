@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, Check, AlertCircle, Building2 } from 'lucide-react';
+import { Check, AlertCircle, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ALL_DISTRICTS } from '../data/mockData';
 
@@ -11,11 +11,15 @@ export default function RegisterPage() {
   
   const [form, setForm] = useState({
     name: '',
-    email: '',
+    blood_bank_name: '',
+    registration_number: '',
+    hospital_type: 'Government',
+    contact_person: '',
     phone: '',
-    license_number: '',
-    district: '',
+    email: '',
     address: '',
+    district: '',
+    state: 'Jammu & Kashmir',
     password: '',
     confirm_password: ''
   });
@@ -29,12 +33,15 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
 
-    if (!form.name.trim()) return setError('Organization name is required');
-    if (!form.license_number.trim()) return setError('License number is required');
+    if (!form.name.trim()) return setError('Hospital name is required');
+    if (!form.registration_number.trim()) return setError('Registration number is required');
+    if (!form.hospital_type.trim()) return setError('Hospital type is required');
+    if (!form.contact_person.trim()) return setError('Contact person is required');
     if (!form.email.trim()) return setError('Email address is required');
     if (!form.phone.trim()) return setError('Phone number is required');
     if (!form.district) return setError('District is required');
-    if (!form.address.trim()) return setError('Physical address is required');
+    if (!form.state.trim()) return setError('State is required');
+    if (!form.address.trim()) return setError('Address is required');
     
     if (form.password.length < 8) {
       return setError('Password must be at least 8 characters long');
@@ -49,9 +56,13 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
         name: form.name,
+        blood_bank_name: form.blood_bank_name,
         phone: form.phone,
-        license_number: form.license_number,
+        registration_number: form.registration_number,
+        hospital_type: form.hospital_type,
+        contact_person: form.contact_person,
         district: form.district,
+        state: form.state,
         address: form.address
       });
 
@@ -94,7 +105,7 @@ export default function RegisterPage() {
   return (
     <div className="auth-page">
       <div className="auth-bg-pattern" />
-      <div className="auth-panel" style={{ maxWidth: 650 }}>
+      <div className="auth-panel" style={{ maxWidth: 700 }}>
         <div className="auth-logo" style={{ cursor: 'pointer', marginBottom: 20 }} onClick={() => navigate('/')}>
           <img src="/logo.png" alt="RehabNation Blood Network" className="auth-logo-img" />
         </div>
@@ -114,7 +125,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div className="form-group">
-                <label className="form-label">Hospital/Blood Bank Name *</label>
+                <label className="form-label">Hospital Name *</label>
                 <input
                   type="text"
                   className="form-input"
@@ -126,13 +137,69 @@ export default function RegisterPage() {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Registration License Number *</label>
+                <label className="form-label">Blood Bank Name (Optional)</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. HSP-78321-AB"
-                  value={form.license_number}
-                  onChange={e => update('license_number', e.target.value)}
+                  placeholder="e.g. City Blood Bank"
+                  value={form.blood_bank_name}
+                  onChange={e => update('blood_bank_name', e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="form-group">
+                <label className="form-label">Registration Number *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. REG-12345-HOSP"
+                  value={form.registration_number}
+                  onChange={e => update('registration_number', e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Hospital Type *</label>
+                <select
+                  className="form-input"
+                  value={form.hospital_type}
+                  onChange={e => update('hospital_type', e.target.value)}
+                  required
+                  disabled={loading}
+                >
+                  <option value="Government">Government</option>
+                  <option value="Private">Private</option>
+                  <option value="NGO">NGO</option>
+                  <option value="Charitable">Charitable</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="form-group">
+                <label className="form-label">Contact Person Name *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Dr. John Doe"
+                  value={form.contact_person}
+                  onChange={e => update('contact_person', e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Contact Phone Number *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. +91 98765 43210"
+                  value={form.phone}
+                  onChange={e => update('phone', e.target.value)}
                   required
                   disabled={loading}
                 />
@@ -153,13 +220,12 @@ export default function RegisterPage() {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">Contact Phone Number *</label>
+                <label className="form-label">State *</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="+234..."
-                  value={form.phone}
-                  onChange={e => update('phone', e.target.value)}
+                  value={form.state}
+                  onChange={e => update('state', e.target.value)}
                   required
                   disabled={loading}
                 />
@@ -185,7 +251,7 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="123 Hospital Road, Suite A"
+                  placeholder="e.g. 12 Healthcare Lane, Srinagar"
                   value={form.address}
                   onChange={e => update('address', e.target.value)}
                   required

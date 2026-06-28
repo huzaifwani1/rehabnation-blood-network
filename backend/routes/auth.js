@@ -16,7 +16,19 @@ const validateEmail = (email) => {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   console.log('HOSPITAL REGISTER REQUEST RECEIVED');
-  const { email, password, name, phone, license_number, district, address } = req.body;
+  const { 
+    email, 
+    password, 
+    name, 
+    blood_bank_name, 
+    registration_number, 
+    hospital_type, 
+    contact_person, 
+    phone, 
+    address, 
+    district, 
+    state 
+  } = req.body;
   
   try {
     if (!email || !email.trim() || !validateEmail(email)) {
@@ -28,19 +40,31 @@ router.post('/register', async (req, res) => {
     }
 
     if (!name || !name.trim()) {
-      return res.status(400).json({ error: 'Organization name is required' });
+      return res.status(400).json({ error: 'Hospital name is required' });
+    }
+
+    if (!registration_number || !registration_number.trim()) {
+      return res.status(400).json({ error: 'Registration number is required' });
+    }
+
+    if (!hospital_type || !hospital_type.trim()) {
+      return res.status(400).json({ error: 'Hospital type is required' });
+    }
+
+    if (!contact_person || !contact_person.trim()) {
+      return res.status(400).json({ error: 'Contact person is required' });
     }
 
     if (!phone || !phone.trim()) {
       return res.status(400).json({ error: 'Phone number is required' });
     }
 
-    if (!license_number || !license_number.trim()) {
-      return res.status(400).json({ error: 'License number is required' });
-    }
-
     if (!district || !district.trim()) {
       return res.status(400).json({ error: 'District is required' });
+    }
+
+    if (!state || !state.trim()) {
+      return res.status(400).json({ error: 'State is required' });
     }
 
     if (!address || !address.trim()) {
@@ -53,10 +77,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Account already exists with this email' });
     }
 
-    // Check if license number exists
-    const licenseExists = await User.findOne({ license_number: license_number.trim() });
-    if (licenseExists) {
-      return res.status(400).json({ error: 'Hospital license number is already registered' });
+    // Check if registration number exists
+    const regExists = await User.findOne({ registration_number: registration_number.trim() });
+    if (regExists) {
+      return res.status(400).json({ error: 'Hospital registration number is already registered' });
     }
 
     // Hash password
@@ -70,12 +94,16 @@ router.post('/register', async (req, res) => {
 
     const newUser = new User({
       name: name.trim(),
-      email: email.trim().toLowerCase(),
+      blood_bank_name: blood_bank_name ? blood_bank_name.trim() : undefined,
+      registration_number: registration_number.trim(),
+      hospital_type: hospital_type.trim(),
+      contact_person: contact_person.trim(),
       phone: phone.trim(),
+      email: email.trim().toLowerCase(),
       password: passwordHash,
-      license_number: license_number.trim(),
-      district: district.trim(),
       address: address.trim(),
+      district: district.trim(),
+      state: state.trim(),
       initials,
       role: 'hospital',
       status: 'pending' // pending approval
@@ -92,7 +120,6 @@ router.post('/register', async (req, res) => {
       { expiresIn: '30d' }
     );
 
-    // Remove password from returned user object
     const userResponse = newUser.toObject();
     delete userResponse.password;
 
