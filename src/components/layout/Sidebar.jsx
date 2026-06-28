@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, User, Settings, LogOut, Users,
-  ScrollText, BarChart3, ShieldCheck, Plus, Upload
+  ScrollText, BarChart3, ShieldCheck, Plus, Upload, Search
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -56,6 +56,7 @@ export default function Sidebar() {
           <SidebarItem to="/" end icon={LayoutDashboard} label="Dashboard" />
           <SectionLabel label="Operations" />
           <SidebarItem to="/hospitals" icon={Users} label="Hospitals" badge={pendingHospitalsCount > 0 ? String(pendingHospitalsCount) : undefined} />
+          <SidebarItem to="/emergency-search" icon={Search} label="National Search" />
           <SectionLabel label="Platform" />
           <SidebarItem to="/reports" icon={BarChart3} label="Reports & Stats" />
           <SidebarItem to="/audit" icon={ScrollText} label="Audit Logs" />

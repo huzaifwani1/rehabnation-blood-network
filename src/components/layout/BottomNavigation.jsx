@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, BarChart3, Settings, LogOut, ScrollText, Menu, X, Upload, User
+  LayoutDashboard, Users, BarChart3, Settings, LogOut, ScrollText, Menu, X, Upload, User, Search
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -34,6 +34,10 @@ export default function BottomNavigation() {
               {pendingHospitalsCount > 0 && <span className="bottom-nav-badge">{pendingHospitalsCount}</span>}
             </div>
             <span>Hospitals</span>
+          </NavLink>
+          <NavLink to="/emergency-search" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
+            <Search size={20} />
+            <span>Search</span>
           </NavLink>
           <NavLink to="/reports" className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}>
             <BarChart3 size={20} />

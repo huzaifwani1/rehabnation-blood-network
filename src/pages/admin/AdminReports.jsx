@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Building2, Users, Heart, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { BarChart3, Building2, Users, MapPin, Layers, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 function StatBar({ label, value, max, color }) {
   const pct = max > 0 ? (value / max) * 100 : 0;
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', justify: 'space-between', marginBottom: 6, fontSize: '0.85rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.85rem' }}>
         <span style={{ fontWeight: 600, color: 'var(--zinc-700)' }}>{label}</span>
         <span style={{ fontWeight: 700, color }}>{value}</span>
       </div>
@@ -18,7 +18,7 @@ function StatBar({ label, value, max, color }) {
 }
 
 export default function AdminReports() {
-  const { fetchStats } = useAuth();
+  const { fetchStats, donors, users } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,8 +41,34 @@ export default function AdminReports() {
     );
   }
 
+  // 1. Blood type stats
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   const maxBloodCount = Math.max(...bloodTypes.map(bt => stats?.bloodTypeCounts?.[bt] || 0), 1);
+
+  // 2. District-wise donor distribution (computed from donors array)
+  const districtCounts = {};
+  donors.forEach(d => {
+    if (d.district) {
+      districtCounts[d.district] = (districtCounts[d.district] || 0) + 1;
+    }
+  });
+  const districtStats = Object.keys(districtCounts).map(name => ({
+    name,
+    count: districtCounts[name]
+  })).sort((a, b) => b.count - a.count);
+  const maxDistrictCount = Math.max(...districtStats.map(d => d.count), 1);
+
+  // 3. Hospital donor statistics
+  const hospitalCounts = {};
+  donors.forEach(d => {
+    const name = d.hospital?.name || 'Unknown Hospital';
+    hospitalCounts[name] = (hospitalCounts[name] || 0) + 1;
+  });
+  const hospitalStats = Object.keys(hospitalCounts).map(name => ({
+    name,
+    count: hospitalCounts[name]
+  })).sort((a, b) => b.count - a.count);
+  const maxHospitalCount = Math.max(...hospitalStats.map(h => h.count), 1);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', padding: '0 var(--space-4)', maxWidth: 1100, margin: '0 auto' }}>
@@ -52,8 +78,6 @@ export default function AdminReports() {
         {[
           { label: 'Total Hospitals', value: stats?.totalHospitals || 0, color: 'var(--red-600)', icon: <Building2 size={18} color="var(--red-600)" /> },
           { label: 'Active Hospitals', value: stats?.approvedHospitals || 0, color: 'var(--color-success)', icon: <ShieldCheck size={18} color="var(--color-success)" /> },
-          { label: 'Pending Reviews', value: stats?.pendingHospitals || 0, color: 'var(--color-warning)', icon: <ShieldAlert size={18} color="var(--color-warning)" /> },
-          { label: 'Suspended Hospitals', value: stats?.suspendedHospitals || 0, color: 'var(--zinc-500)', icon: <ShieldAlert size={18} color="var(--zinc-500)" /> },
           { label: 'Total Registered Donors', value: stats?.totalDonors || 0, color: 'var(--color-info)', icon: <Users size={18} color="var(--color-info)" /> }
         ].map(s => (
           <div key={s.label} className="card" style={{ padding: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
@@ -68,13 +92,13 @@ export default function AdminReports() {
         ))}
       </div>
 
-      {/* Two Column details */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)' }}>
+      {/* Two Column Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-5)', alignItems: 'start' }}>
         
         {/* Blood Group Distribution */}
         <div className="card" style={{ padding: 'var(--space-5)' }}>
           <h3 style={{ margin: '0 0 var(--space-5)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <BarChart3 size={18} color="var(--red-600)" /> Blood Group Stock Distribution
+            <Layers size={18} color="var(--red-600)" /> Blood Group Stock Distribution
           </h3>
           {bloodTypes.map(bt => (
             <StatBar 
@@ -87,21 +111,45 @@ export default function AdminReports() {
           ))}
         </div>
 
-        {/* Info panel */}
-        <div className="card" style={{ padding: 'var(--space-5)', height: '100%' }}>
-          <h3 style={{ margin: '0 0 var(--space-4)' }}>Platform Analytics Summary</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: '1.6' }}>
-            This platform currently monitors blood donor registers managed internally by hospital networks. 
-            All statistics are computed live based on directory entries inputted or imported by accredited medical staff.
-          </p>
-          <div style={{ marginTop: 24, padding: '16px', background: 'var(--beige-50)', borderRadius: 'var(--radius-md)' }}>
-            <h4 style={{ margin: '0 0 8px' }}>Security & Auditing Note</h4>
-            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-              Individual contact details are fully encrypted and only visible to the hospital that registered the donor. 
-              The platform administrators can view aggregated trends and manage organization approvals, but cannot perform direct donor updates.
-            </p>
-          </div>
+        {/* District-wise Distribution */}
+        <div className="card" style={{ padding: 'var(--space-5)' }}>
+          <h3 style={{ margin: '0 0 var(--space-5)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MapPin size={18} color="var(--red-600)" /> District Distribution
+          </h3>
+          {districtStats.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.88rem', textAlign: 'center', padding: '24px 0' }}>No location data logged.</div>
+          ) : (
+            districtStats.map(d => (
+              <StatBar 
+                key={d.name} 
+                label={d.name} 
+                value={d.count} 
+                max={maxDistrictCount} 
+                color="var(--color-info)" 
+              />
+            ))
+          )}
         </div>
+      </div>
+
+      {/* Hospital Distribution Stats */}
+      <div className="card" style={{ padding: 'var(--space-5)' }}>
+        <h3 style={{ margin: '0 0 var(--space-5)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Building2 size={18} color="var(--red-600)" /> Hospital Donor Registry Sizes
+        </h3>
+        {hospitalStats.length === 0 ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.88rem', textAlign: 'center', padding: '24px 0' }}>No registered hospitals.</div>
+        ) : (
+          hospitalStats.map(h => (
+            <StatBar 
+              key={h.name} 
+              label={h.name} 
+              value={h.count} 
+              max={maxHospitalCount} 
+              color="var(--color-success)" 
+            />
+          ))
+        )}
       </div>
     </div>
   );

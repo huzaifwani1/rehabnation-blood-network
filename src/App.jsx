@@ -24,6 +24,7 @@ import UserSettings     from './pages/user/UserSettings';
 import AdminLoginPage   from './pages/admin/AdminLoginPage';
 import AdminDashboard   from './pages/admin/AdminDashboard';
 import AdminHospitals   from './pages/admin/AdminHospitals';
+import AdminEmergencySearch from './pages/admin/AdminEmergencySearch';
 import AdminAuditLogs   from './pages/admin/AdminAuditLogs';
 import AdminSettings    from './pages/admin/AdminSettings';
 import AdminReports     from './pages/admin/AdminReports';
@@ -162,6 +163,7 @@ function AdminAppRoutes() {
       <Route path="/" element={<AdminProtected><AppLayout /></AdminProtected>}>
         <Route index element={<AdminDashboard />} />
         <Route path="hospitals" element={<AdminHospitals />} />
+        <Route path="emergency-search" element={<AdminEmergencySearch />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="audit" element={<AdminAuditLogs />} />
         <Route path="settings" element={<AdminSettings />} />
