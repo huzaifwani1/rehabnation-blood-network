@@ -250,7 +250,7 @@ export function AuthProvider({ children }) {
   };
 
   const registerUser = async (userData) => {
-    const { email, password, name, phone, license_number, district, address } = userData;
+    const { email, password, name, blood_bank_name, registration_number, hospital_type, contact_person, phone, address, district, state } = userData;
 
     if (!email || !email.trim() || !validateEmailFormat(email)) {
       return { success: false, error: 'Invalid email format' };
@@ -265,10 +265,14 @@ export function AuthProvider({ children }) {
         email,
         password,
         name,
+        blood_bank_name,
+        registration_number,
+        hospital_type,
+        contact_person,
         phone,
-        license_number,
+        address,
         district,
-        address
+        state
       });
 
       if (res.data.success) {
