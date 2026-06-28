@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Search, Plus, Phone, Edit, Trash2, Shield, Calendar, Users, Filter, CheckCircle2, Upload, User, ArrowRight, BarChart3, Clock } from 'lucide-react';
+import { Search, Plus, Phone, Edit, Trash2, Calendar, Users, Filter, CheckCircle2, Upload, User, BarChart3, Clock, Eye, X, Power } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BLOOD_TYPES, ALL_DISTRICTS } from '../../data/mockData';
 
@@ -10,23 +10,23 @@ export default function HospitalDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [bloodFilter, setBloodFilter] = useState('');
   const [districtFilter, setDistrictFilter] = useState('');
+  const [cooldownFilter, setCooldownFilter] = useState('all'); // 'all', 'ready', 'cooldown'
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDonor, setEditingDonor] = useState(null);
+  const [viewingDonor, setViewingDonor] = useState(null);
   const [localStats, setLocalStats] = useState(null);
 
   const [form, setForm] = useState({
     full_name: '', dob: '', gender: 'male', phone: '', email: '',
     blood_type: '', district: '', address: '', weight_kg: '',
-    hemoglobin_level: '', last_donation_date: '', donation_count: '0'
+    hemoglobin_level: '', last_donation_date: '', donation_count: '0',
+    is_available: true
   });
 
   useEffect(() => {
-    fetchDonors({
-      search: searchTerm,
-      blood_type: bloodFilter,
-      district: districtFilter
-    });
-  }, [searchTerm, bloodFilter, districtFilter]);
+    fetchDonors();
+  }, []);
 
   useEffect(() => {
     const getStats = async () => {
@@ -43,7 +43,8 @@ export default function HospitalDashboard() {
     setForm({
       full_name: '', dob: '', gender: 'male', phone: '', email: '',
       blood_type: '', district: '', address: '', weight_kg: '',
-      hemoglobin_level: '', last_donation_date: '', donation_count: '0'
+      hemoglobin_level: '', last_donation_date: '', donation_count: '0',
+      is_available: true
     });
     setIsModalOpen(true);
   };
@@ -62,7 +63,8 @@ export default function HospitalDashboard() {
       weight_kg: donor.weight_kg || '',
       hemoglobin_level: donor.hemoglobin_level || '',
       last_donation_date: donor.last_donation_date || '',
-      donation_count: String(donor.donation_count || 0)
+      donation_count: String(donor.donation_count || 0),
+      is_available: donor.is_available ?? true
     });
     setIsModalOpen(true);
   };
@@ -96,6 +98,16 @@ export default function HospitalDashboard() {
     }
   };
 
+  const toggleDonorActive = async (donor) => {
+    const nextState = !donor.is_available;
+    const result = await updateDonor(donor._id || donor.id, { is_available: nextState });
+    if (result.success) {
+      showToast(`Donor marked ${nextState ? 'Active' : 'Inactive'}`, 'success');
+    } else {
+      showToast(result.error || 'Failed to update status', 'error');
+    }
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this donor record? This action is permanent.')) {
       const result = await deleteDonor(id);
@@ -107,7 +119,7 @@ export default function HospitalDashboard() {
     }
   };
 
-  // Cooldown calculation helper
+  // Cooldown calculation helper (56-day rule)
   const isEligibleToDonate = (lastDonationDate) => {
     if (!lastDonationDate) return true;
     const diffTime = Math.abs(new Date() - new Date(lastDonationDate));
@@ -124,6 +136,24 @@ export default function HospitalDashboard() {
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
     .slice(0, 4);
 
+  // Frontend Filtering
+  const filteredDonors = donors.filter(d => {
+    const matchesSearch = !searchTerm || 
+      d.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      d.phone.includes(searchTerm);
+    const matchesBlood = !bloodFilter || d.blood_type === bloodFilter;
+    const matchesDistrict = !districtFilter || d.district === districtFilter;
+    
+    let matchesCooldown = true;
+    if (cooldownFilter === 'ready') {
+      matchesCooldown = isEligibleToDonate(d.last_donation_date);
+    } else if (cooldownFilter === 'cooldown') {
+      matchesCooldown = !isEligibleToDonate(d.last_donation_date);
+    }
+
+    return matchesSearch && matchesBlood && matchesDistrict && matchesCooldown;
+  });
+
   return (
     <div style={{ padding: '0 var(--space-4)', maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
       
@@ -137,13 +167,13 @@ export default function HospitalDashboard() {
           <button className="btn btn-secondary" onClick={() => navigate('/import-donors')} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Upload size={16} /> Bulk Import
           </button>
-          <button className="btn btn-primary" onClick={handleOpenAdd} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button className="btn className=btn-primary btn-primary" onClick={handleOpenAdd} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Plus size={16} /> Add Donor
           </button>
         </div>
       </div>
 
-      {/* Grid of stats summary */}
+      {/* Stats summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
         {[
           { label: 'Total Donors', value: donors.length, sub: 'Registered locally', icon: <Users size={18} />, color: 'var(--red-600)' },
@@ -233,9 +263,10 @@ export default function HospitalDashboard() {
       <div className="card" style={{ padding: 'var(--space-4)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
           <h3 style={{ margin: 0 }}>Donor Directory</h3>
-          {/* Internal filter parameters */}
+          
+          {/* Filters row */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flex: 1, justify: 'flex-end' }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: 240 }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: 220 }}>
               <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--zinc-400)' }} />
               <input
                 type="text"
@@ -254,6 +285,11 @@ export default function HospitalDashboard() {
               <option value="">District</option>
               {ALL_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
+            <select className="form-input" style={{ width: 155 }} value={cooldownFilter} onChange={e => setCooldownFilter(e.target.value)}>
+              <option value="all">Cooldown (All)</option>
+              <option value="ready">Ready to Donate</option>
+              <option value="cooldown">In Cooldown</option>
+            </select>
           </div>
         </div>
 
@@ -266,19 +302,19 @@ export default function HospitalDashboard() {
                 <th style={{ textAlign: 'left', padding: '12px 12px' }}>Location</th>
                 <th style={{ textAlign: 'left', padding: '12px 12px' }}>Phone</th>
                 <th style={{ textAlign: 'left', padding: '12px 12px' }}>Last Donated</th>
-                <th style={{ textAlign: 'left', padding: '12px 12px' }}>Verification Status</th>
+                <th style={{ textAlign: 'left', padding: '12px 12px' }}>Status</th>
                 <th style={{ textAlign: 'right', padding: '12px 12px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {donors.length === 0 ? (
+              {filteredDonors.length === 0 ? (
                 <tr>
                   <td colSpan="7" style={{ textAlign: 'center', padding: '32px var(--space-4)', color: 'var(--text-muted)' }}>
                     No donor records found. Add or import to begin.
                   </td>
                 </tr>
               ) : (
-                donors.map(donor => (
+                filteredDonors.map(donor => (
                   <tr key={donor._id || donor.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
                     <td style={{ padding: '12px 12px', fontWeight: 600, color: 'var(--zinc-900)' }}>
                       <div>{donor.full_name}</div>
@@ -293,20 +329,28 @@ export default function HospitalDashboard() {
                     </td>
                     <td style={{ padding: '12px 12px', color: 'var(--zinc-600)' }}>{donor.district}</td>
                     <td style={{ padding: '12px 12px', color: 'var(--zinc-600)' }}>{donor.phone}</td>
-                    <td style={{ padding: '12px 12px', color: 'var(--zinc-600)' }}>{donor.last_donation_date || 'Never'}</td>
+                    <td style={{ padding: '12px 12px', color: 'var(--zinc-600)' }}>
+                      {donor.last_donation_date ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: isEligibleToDonate(donor.last_donation_date) ? 'var(--green-700)' : 'var(--amber-700)' }}>
+                          {donor.last_donation_date}
+                        </span>
+                      ) : 'Never'}
+                    </td>
                     <td style={{ padding: '12px 12px' }}>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        background: donor.verification_status === 'camp_verified' ? 'rgba(22, 163, 74, 0.1)' : 'var(--zinc-100)',
-                        color: donor.verification_status === 'camp_verified' ? 'var(--green-700)' : 'var(--zinc-500)',
-                        borderRadius: 99, fontSize: '0.72rem', padding: '2px 8px', fontWeight: 700
-                      }}>
-                        {donor.verification_status === 'camp_verified' ? <CheckCircle2 size={10} /> : null}
-                        {donor.verification_status === 'camp_verified' ? 'Camp Verified' : 'Unverified'}
-                      </span>
+                      <button 
+                        onClick={() => toggleDonorActive(donor)} 
+                        className={`btn btn-sm ${donor.is_available !== false ? 'btn-success' : 'btn-secondary'}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', padding: '3px 8px', borderRadius: 99 }}
+                      >
+                        <Power size={11} />
+                        {donor.is_available !== false ? 'Active' : 'Inactive'}
+                      </button>
                     </td>
                     <td style={{ padding: '12px 12px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button className="btn btn-sm btn-secondary" onClick={() => setViewingDonor(donor)} style={{ display: 'inline-flex', alignItems: 'center', padding: 5 }} title="View Details">
+                          <Eye size={12} />
+                        </button>
                         <a href={`tel:${donor.phone}`} className="btn btn-sm btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', padding: 5 }} title="Call Donor">
                           <Phone size={12} color="var(--green-600)" />
                         </a>
@@ -325,6 +369,41 @@ export default function HospitalDashboard() {
           </table>
         </div>
       </div>
+
+      {/* Details View Modal */}
+      {viewingDonor && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card animate-slideUp" style={{ width: '90%', maxWidth: 500, padding: 'var(--space-5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid var(--border-light)', paddingBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>Donor Details</h3>
+              <button onClick={() => setViewingDonor(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { label: 'Full Name', value: viewingDonor.full_name },
+                { label: 'Blood Group', value: viewingDonor.blood_type },
+                { label: 'Phone', value: viewingDonor.phone },
+                { label: 'Email', value: viewingDonor.email || 'None' },
+                { label: 'Gender', value: viewingDonor.gender },
+                { label: 'Date of Birth', value: viewingDonor.dob || 'None' },
+                { label: 'District', value: viewingDonor.district },
+                { label: 'Address', value: viewingDonor.address || 'None' },
+                { label: 'Weight (kg)', value: viewingDonor.weight_kg || 'None' },
+                { label: 'Hemoglobin Level', value: viewingDonor.hemoglobin_level || 'None' },
+                { label: 'Last Donation Date', value: viewingDonor.last_donation_date || 'Never' },
+                { label: 'Total Donations', value: viewingDonor.donation_count || 0 },
+                { label: 'Status', value: viewingDonor.is_available !== false ? 'Active' : 'Inactive' }
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.85rem' }}>{item.label}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--zinc-900)', fontSize: '0.85rem' }}>{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
@@ -411,7 +490,7 @@ export default function HospitalDashboard() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div className="form-group">
                   <label className="form-label">Weight (kg)</label>
                   <input
@@ -441,6 +520,16 @@ export default function HospitalDashboard() {
                     onChange={e => setForm({ ...form, donation_count: e.target.value })}
                   />
                 </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input 
+                  type="checkbox" 
+                  id="form-is-available" 
+                  checked={form.is_available} 
+                  onChange={e => setForm({ ...form, is_available: e.target.checked })} 
+                />
+                <label htmlFor="form-is-available" style={{ margin: 0, fontWeight: 600, fontSize: '0.85rem' }}>Active status (donor is active in directory)</label>
               </div>
 
               <div style={{ display: 'flex', justify: 'flex-end', gap: 12 }}>
